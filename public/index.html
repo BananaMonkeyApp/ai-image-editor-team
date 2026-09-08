@@ -23,7 +23,6 @@
     font-size: 1.8rem;
   }
 
-  /* Lock */
   .lock-screen {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; min-height: 70vh;
@@ -116,7 +115,6 @@
     font-size: 0.85rem; z-index: 100;
   }
 
-  /* Admin */
   .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .admin-header h2 { font-size: 1.4rem; }
   .refresh-btn {
@@ -171,7 +169,6 @@
 <div class="container">
   <h1>🎨 AI Image Editor - Team</h1>
 
-  <!-- Lock -->
   <div class="lock-screen view active" id="lockView">
     <p style="margin-bottom: 20px; color: #999;">Enter access code</p>
     <input type="password" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" autofocus>
@@ -179,7 +176,6 @@
     <p class="lock-error" id="lockError"></p>
   </div>
 
-  <!-- Editor (team users) -->
   <div class="view" id="editorView">
     <button class="logout" onclick="logout()">Logout</button>
 
@@ -245,7 +241,6 @@
     </div>
   </div>
 
-  <!-- Admin dashboard -->
   <div class="view" id="adminView">
     <button class="logout" onclick="logout()">Logout</button>
     <div class="admin-header">
@@ -257,7 +252,6 @@
     </div>
   </div>
 
-  <!-- Image modal -->
   <div class="modal" id="imageModal" onclick="closeModal()">
     <button class="modal-close" onclick="closeModal()">Close</button>
     <img id="modalImg" alt="Full">
@@ -265,16 +259,23 @@
 </div>
 
 <script>
+// ========================================================
+// 🔐 CHANGE PASSWORDS HERE (must also match in api/edit.js and api/admin.js)
+// ========================================================
+const TEAM_CODE = "8800";
+const ADMIN_CODE = "8700";
+// ========================================================
+
 let selectedImageBase64 = null;
 let resultImageData = null;
-let userRole = null;  // 'team' or 'admin'
+let userRole = null;
 
 function checkCode() {
   const code = document.getElementById("codeInput").value;
-  if (code === "8800") {
+  if (code === TEAM_CODE) {
     userRole = "team";
     showEditor();
-  } else if (code === "8700") {
+  } else if (code === ADMIN_CODE) {
     userRole = "admin";
     showAdmin();
   } else {
@@ -306,7 +307,6 @@ function showAdmin() {
   loadAdminData();
 }
 
-/* --- Team editor --- */
 function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -345,7 +345,7 @@ async function submitEdit() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-App-Code": "8800"
+        "X-App-Code": TEAM_CODE
       },
       body: JSON.stringify({
         image: selectedImageBase64,
@@ -378,7 +378,6 @@ function downloadResult() {
   link.click();
 }
 
-/* --- Admin dashboard --- */
 async function loadAdminData() {
   const content = document.getElementById("adminContent");
   content.innerHTML = '<div class="empty">Loading...</div>';
@@ -386,7 +385,7 @@ async function loadAdminData() {
   try {
     const response = await fetch("/api/admin", {
       method: "POST",
-      headers: { "X-App-Code": "8700" }
+      headers: { "X-App-Code": ADMIN_CODE }
     });
     const data = await response.json();
     if (data.error) throw new Error(data.error);
@@ -428,7 +427,6 @@ function escapeHtml(s) {
 
 function formatTime(t) {
   if (!t) return '';
-  // Convert ISO-ish "2024-11-19T10-30-45-123Z" back to readable
   const cleaned = t.replace(/-/g, (m, i) => i > 10 ? ':' : '-').replace(/-(\d{3})Z?$/, '.$1Z');
   const d = new Date(cleaned);
   if (isNaN(d.getTime())) return t;
