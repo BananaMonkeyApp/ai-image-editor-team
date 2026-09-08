@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/edit.js": {
+      "maxDuration": 90
+    }
+  }
+}
