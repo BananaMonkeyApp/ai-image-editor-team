@@ -4,7 +4,7 @@ import { put, list } from '@vercel/blob';
 // 🔐 CHANGE PASSWORDS HERE (must match public/index.html)
 // ========================================================
 const TEAM_CODE = "8800";
-const ADMIN_CODE = "8700";
+const ADMIN_CODE = "9890";
 // ========================================================
 
 const BACKEND_SERVERS = [
