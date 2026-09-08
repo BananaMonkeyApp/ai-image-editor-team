@@ -1,6 +1,10 @@
 import { list } from '@vercel/blob';
 
-const ADMIN_CODE = "8700";
+// ========================================================
+// 🔐 CHANGE ADMIN CODE HERE (must match public/index.html)
+// ========================================================
+const ADMIN_CODE = "9890";
+// ========================================================
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -15,10 +19,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // List all blobs under 'logs/'
-    const { blobs } = await list({ prefix: 'logs/' });
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    console.log(`[Admin] Blob token present: ${blobToken ? 'YES' : 'NO'}`);
+    const { blobs } = await list({ prefix: 'logs/', token: blobToken });
+    console.log(`[Admin] Found ${blobs.length} blobs`);
 
-    // Group by session key (from filename pattern: timestamp_sessionKey_type.ext)
     const sessions = {};
     for (const blob of blobs) {
       const filename = blob.pathname.split('/').pop();
@@ -35,7 +40,6 @@ export default async function handler(req, res) {
       else if (type === 'meta') sessions[sessionKey].metaUrl = blob.url;
     }
 
-    // Fetch metadata JSONs
     const sessionList = Object.values(sessions);
     for (const s of sessionList) {
       if (s.metaUrl) {
@@ -49,7 +53,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Sort newest first
     sessionList.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
     return res.status(200).json({ sessions: sessionList });
