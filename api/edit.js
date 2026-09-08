@@ -1,9 +1,12 @@
 import { put, list } from '@vercel/blob';
 
+// ========================================================
+// 🔐 CHANGE PASSWORDS HERE (must match public/index.html)
+// ========================================================
 const TEAM_CODE = "8800";
 const ADMIN_CODE = "8700";
+// ========================================================
 
-// Your 20 backend servers (uses your existing infrastructure)
 const BACKEND_SERVERS = [
   "https://ai-image-editor-iota-beige.vercel.app/api/edit",
   "https://ai-image-editor-2.vercel.app/api/edit",
@@ -27,7 +30,6 @@ const BACKEND_SERVERS = [
   "https://ai-image-editor-20.vercel.app/api/edit"
 ];
 
-// Extract base64 image bytes from data URL
 function dataUrlToBuffer(dataUrl) {
   const commaIndex = dataUrl.indexOf(',');
   const base64Part = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
@@ -52,7 +54,6 @@ export default async function handler(req, res) {
     if (!image) return res.status(400).json({ error: "Missing image" });
     if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
-    // Shuffle servers, try one after another
     const shuffled = [...BACKEND_SERVERS].sort(() => Math.random() - 0.5);
     let lastError = null;
     let successResult = null;
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-App-Code": "8700"  // backend's own code
+            "X-App-Code": "8700"
           },
           body: JSON.stringify({ image, prompt, lora })
         });
@@ -77,9 +78,8 @@ export default async function handler(req, res) {
           const isRateLimit = msg.includes("limit") || msg.includes("quota") || msg.includes("zerogpu");
           if (isRateLimit) {
             lastError = data.message || data.error;
-            continue;  // try next server
+            continue;
           } else {
-            // Non-rate-limit error (e.g., NCII block) — return immediately
             return res.status(200).json(data);
           }
         }
@@ -103,29 +103,31 @@ export default async function handler(req, res) {
       });
     }
 
-    // Log to Vercel Blob
     try {
+      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      console.log(`[Team] Blob token present: ${blobToken ? 'YES' : 'NO'}`);
+
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const sessionKey = `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       const inputBuffer = dataUrlToBuffer(image);
       const outputBuffer = dataUrlToBuffer(successResult.image);
+      console.log(`[Team] Uploading input (${inputBuffer.length} bytes) and output (${outputBuffer.length} bytes)`);
 
-      // Store input image
       const inputBlob = await put(
         `logs/${timestamp}_${sessionKey}_input.jpg`,
         inputBuffer,
-        { access: 'public', contentType: 'image/jpeg' }
+        { access: 'public', contentType: 'image/jpeg', token: blobToken }
       );
+      console.log(`[Team] Input uploaded: ${inputBlob.url}`);
 
-      // Store output image
       const outputBlob = await put(
         `logs/${timestamp}_${sessionKey}_output.png`,
         outputBuffer,
-        { access: 'public', contentType: 'image/png' }
+        { access: 'public', contentType: 'image/png', token: blobToken }
       );
+      console.log(`[Team] Output uploaded: ${outputBlob.url}`);
 
-      // Store metadata
       const metadata = {
         timestamp: new Date().toISOString(),
         prompt: prompt,
@@ -138,13 +140,13 @@ export default async function handler(req, res) {
       await put(
         `logs/${timestamp}_${sessionKey}_meta.json`,
         JSON.stringify(metadata),
-        { access: 'public', contentType: 'application/json' }
+        { access: 'public', contentType: 'application/json', token: blobToken }
       );
 
-      console.log(`[Team] Logged to blob: ${sessionKey}`);
+      console.log(`[Team] ✅ Logged to blob: ${sessionKey}`);
     } catch (logErr) {
-      console.error(`[Team] Log error (non-fatal): ${logErr.message}`);
-      // Don't fail the request just because logging failed
+      console.error(`[Team] ❌ Log error (non-fatal): ${logErr.message}`);
+      console.error(`[Team] Stack: ${logErr.stack}`);
     }
 
     return res.status(200).json(successResult);
