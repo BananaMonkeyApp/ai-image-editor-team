@@ -102,6 +102,7 @@ export default async function handler(req, res) {
       case 'admin_save_pack': return await handleAdminSavePack(req, res);
       case 'admin_delete_pack': return await handleAdminDeletePack(req, res);
       case 'admin_save_settings': return await handleAdminSaveSettings(req, res);
+      case 'admin_delete_edit': return await handleAdminDeleteEdit(req, res);
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -434,6 +435,29 @@ async function handleAdminSaveSettings(req, res) {
     await sql`INSERT INTO settings (key, value) VALUES ('user_notes', ${String(user_notes)}) ON CONFLICT (key) DO UPDATE SET value = ${String(user_notes)}`;
   }
 
+  return res.status(200).json({ success: true });
+}
+
+async function handleAdminDeleteEdit(req, res) {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: "id required" });
+
+  // Get the edit to delete blob files
+  const { rows } = await sql`SELECT input_url, output_url FROM edits WHERE id = ${id} LIMIT 1`;
+  if (rows.length > 0) {
+    const edit = rows[0];
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    try {
+      if (edit.input_url) await del(edit.input_url, { token: blobToken });
+      if (edit.output_url) await del(edit.output_url, { token: blobToken });
+    } catch (e) {
+      console.error('[Delete] Blob delete failed (non-fatal):', e.message);
+    }
+  }
+
+  await sql`DELETE FROM edits WHERE id = ${id}`;
   return res.status(200).json({ success: true });
 }
 
