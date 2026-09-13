@@ -39,9 +39,12 @@
   .auth-tabs button:first-child { border-radius: 8px 0 0 8px; }
   .auth-tabs button:last-child { border-radius: 0 8px 8px 0; }
 
-  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-bottom: 15px; border-bottom: 1px solid #2a2a2a; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-bottom: 15px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; gap: 10px; }
   .topbar .user-info { display: flex; align-items: center; gap: 12px; }
   .balance-badge { background: linear-gradient(90deg, #f80, #fa0); color: black; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.95rem; }
+
+  .notes-banner { background: linear-gradient(90deg, #1a3a1a, #143314); border: 1px solid #2a5a2a; padding: 12px 16px; border-radius: 10px; margin-bottom: 15px; color: #cfc; font-size: 0.9rem; white-space: pre-wrap; line-height: 1.4; }
+  .notes-banner strong { color: #6f6; }
 
   .upload-area { border: 2px dashed #444; border-radius: 10px; padding: 30px 20px; text-align: center; cursor: pointer; }
   .upload-area:hover { border-color: #06f; }
@@ -51,8 +54,14 @@
   .preset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
   .preset-btn { padding: 12px; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; font-size: 0.85rem; position: relative; }
   .preset-btn:hover { background: #06f; border-color: #06f; }
-  .preset-btn.selected { background: #06f; border-color: #f0f; }
+  .preset-btn.selected { background: linear-gradient(90deg, #06f, #a0f); border-color: #f0f; }
   .preset-cost { display: block; font-size: 0.7rem; color: #fa0; margin-top: 4px; font-weight: 700; }
+  .preset-btn.selected .preset-cost { color: #ffd; }
+  .preset-btn.custom-btn { background: #2a1a3a; border-color: #a0f; }
+  .preset-btn.custom-btn:hover { background: #3a2a4a; }
+  .preset-btn.custom-btn.selected { background: linear-gradient(90deg, #a0f, #f0f); }
+
+  .custom-prompt-box { margin-top: 12px; padding: 12px; background: #0f0f0f; border-radius: 8px; border: 1px solid #a0f; }
 
   .status { text-align: center; padding: 15px; margin: 15px 0; background: #1a1a1a; border-radius: 8px; color: #06f; }
   .error { background: #2a1010; color: #f66; padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 0.9rem; }
@@ -60,11 +69,17 @@
   .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #333; border-top-color: #06f; border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 10px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .packs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .packs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
   .pack-btn { background: #222; border: 2px solid #333; padding: 15px; border-radius: 10px; cursor: pointer; text-align: center; }
   .pack-btn:hover { border-color: #06f; }
   .pack-price { font-size: 1.4rem; font-weight: 800; color: #fa0; }
   .pack-coins { font-size: 0.9rem; color: #aaa; margin-top: 4px; }
+
+  .pricing-chart { background: #0f0f0f; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+  .pricing-chart-title { font-size: 0.85rem; color: #888; margin-bottom: 8px; }
+  .pricing-chart table { width: 100%; font-size: 0.85rem; }
+  .pricing-chart td { padding: 4px 0; }
+  .pricing-chart td:last-child { text-align: right; color: #fa0; font-weight: 600; }
 
   .tabs { display: flex; gap: 4px; margin-bottom: 15px; overflow-x: auto; }
   .tabs button { background: #222; border: 1px solid #333; color: #aaa; padding: 8px 16px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
@@ -74,28 +89,37 @@
   th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a2a2a; }
   th { color: #888; font-weight: 600; }
 
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-
   .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
   .modal.active { display: flex; }
   .modal-content { background: #1a1a1a; padding: 24px; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-content h3 { margin-bottom: 15px; }
-  .modal img { max-width: 100%; max-height: 70vh; }
+  .modal img { max-width: 100%; }
 
   .result-img { max-width: 100%; max-height: 500px; border-radius: 8px; margin: 12px auto; display: block; }
   .logout-btn { background: #333; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
 
   .session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; }
+  .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; cursor: pointer; }
+  .session-card:hover { border-color: #06f; }
   .session-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-  .session-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; cursor: pointer; }
+  .session-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; }
   .session-label { font-size: 0.7rem; color: #888; }
   .session-prompt { font-size: 0.8rem; color: #ddd; background: #0f0f0f; padding: 6px; border-radius: 6px; margin: 4px 0; max-height: 60px; overflow-y: auto; }
   .session-meta { font-size: 0.7rem; color: #888; }
 
+  /* Swipeable edit viewer */
+  .edit-viewer { position: relative; background: #0a0a0a; }
+  .edit-viewer-images { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+  .edit-viewer-images img { width: 100%; max-height: 45vh; object-fit: contain; border-radius: 8px; background: #000; }
+  .edit-viewer-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+  .edit-viewer-nav button { background: #333; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .edit-viewer-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .edit-viewer-info { text-align: center; font-size: 0.85rem; color: #aaa; }
+
   label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: #aaa; }
   .form-row { margin-bottom: 10px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .checkbox-row input[type="checkbox"] { width: auto; }
 </style>
 </head>
 <body>
@@ -130,6 +154,8 @@
       </div>
     </div>
 
+    <div id="notesBanner" class="notes-banner" style="display: none;"></div>
+
     <div class="card">
       <div class="card-title">1. Upload Image</div>
       <div class="upload-area" onclick="document.getElementById('fileInput').click()">
@@ -142,16 +168,16 @@
     <div class="card">
       <div class="card-title">2. Choose Edit</div>
       <div id="presetGrid" class="preset-grid"></div>
-      <div id="customPromptBox" style="margin-top: 12px; display: none;">
-        <label>Or write custom prompt (<span id="customCost">120</span> coins)</label>
-        <textarea id="customPrompt" placeholder="Describe your edit..."></textarea>
+      <div id="customPromptBox" class="custom-prompt-box" style="display: none;">
+        <label>✍️ Write your custom prompt (<span id="customCostShow">120</span> coins)</label>
+        <textarea id="customPrompt" placeholder="e.g., Make it look like a sunset landscape..."></textarea>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">3. LoRA (optional style)</div>
+      <div class="card-title">3. LoRA Style (optional)</div>
       <select id="loraSelect">
-        <option value="Photo-to-Anime">Photo-to-Anime (default)</option>
+        <option value="Photo-to-Anime">Photo-to-Anime</option>
         <option value="Anime-V2">Anime-V2</option>
         <option value="Multiple-Angles">Multiple-Angles</option>
         <option value="Light-Migration">Light-Migration</option>
@@ -204,6 +230,7 @@
       <button data-tab="packs" onclick="switchAdminTab('packs')">Coin Packs</button>
       <button data-tab="edits" onclick="switchAdminTab('edits')">Edits</button>
       <button data-tab="transactions" onclick="switchAdminTab('transactions')">Transactions</button>
+      <button data-tab="settings" onclick="switchAdminTab('settings')">Settings</button>
     </div>
     <div id="adminContent" class="card">Loading...</div>
   </div>
@@ -212,6 +239,7 @@
   <div class="modal" id="buyModal" onclick="if(event.target===this) closeModal('buyModal')">
     <div class="modal-content">
       <h3>Buy Coins</h3>
+      <div id="pricingChart" class="pricing-chart"></div>
       <div class="packs-grid" id="packsGrid"></div>
       <button class="btn btn-secondary btn-full" style="margin-top: 15px;" onclick="closeModal('buyModal')">Cancel</button>
     </div>
@@ -219,8 +247,33 @@
 
   <!-- IMAGE MODAL -->
   <div class="modal" id="imgModal" onclick="closeModal('imgModal')">
-    <div class="modal-content" style="max-width: 90%; padding: 0;">
+    <div class="modal-content" style="max-width: 95%; padding: 0; background: transparent;">
       <img id="modalImage" style="width: 100%; border-radius: 12px;">
+    </div>
+  </div>
+
+  <!-- EDIT VIEWER MODAL (swipeable) -->
+  <div class="modal" id="editViewerModal" onclick="if(event.target===this) closeModal('editViewerModal')">
+    <div class="modal-content edit-viewer" style="max-width: 900px;">
+      <div class="edit-viewer-images">
+        <div>
+          <div class="session-label">Input</div>
+          <img id="viewerInput" onclick="showImage(this.src)">
+        </div>
+        <div>
+          <div class="session-label">Output</div>
+          <img id="viewerOutput" onclick="showImage(this.src)">
+        </div>
+      </div>
+      <div class="session-meta" style="margin-bottom: 8px;"><strong id="viewerUser"></strong></div>
+      <div class="session-prompt" id="viewerPrompt"></div>
+      <div class="session-meta" id="viewerMeta"></div>
+      <div class="edit-viewer-nav">
+        <button id="viewerPrev" onclick="viewerNav(-1)">← Previous</button>
+        <div class="edit-viewer-info" id="viewerInfo"></div>
+        <button id="viewerNext" onclick="viewerNav(1)">Next →</button>
+      </div>
+      <button class="btn btn-secondary btn-full" style="margin-top: 15px;" onclick="closeModal('editViewerModal')">Close</button>
     </div>
   </div>
 
@@ -231,27 +284,22 @@
 </div>
 
 <script>
-// =========================================================
-// GLOBAL STATE
-// =========================================================
 let currentUser = null;
 let currentToken = null;
-let config = { presets: [], coin_packs: [], custom_prompt_cost: 120, custom_prompt_enabled: true, razorpay_key_id: '' };
+let config = { presets: [], coin_packs: [], custom_prompt_cost: 120, custom_prompt_enabled: true, default_lora: 'Photo-to-Anime', user_notes: '', razorpay_key_id: '' };
 let selectedPresetId = null;
 let selectedIsCustom = false;
 let selectedImageBase64 = null;
 let resultImageData = null;
 let authMode = 'login';
+let editsList = [];
+let currentEditIndex = 0;
 
-// =========================================================
-// STARTUP
-// =========================================================
 window.addEventListener('DOMContentLoaded', () => {
   currentToken = localStorage.getItem('token');
-  if (currentToken) {
-    fetchMe();
-  }
-  loadConfig();
+  loadConfig().then(() => {
+    if (currentToken) fetchMe();
+  });
 });
 
 async function loadConfig() {
@@ -260,23 +308,33 @@ async function loadConfig() {
     config = await res.json();
     renderPresets();
     renderPacks();
-    if (config.custom_prompt_enabled) {
-      document.getElementById('customPromptBox').style.display = 'block';
-      document.getElementById('customCost').textContent = config.custom_prompt_cost;
+    renderNotes();
+    // Set default LoRA
+    const loraSelect = document.getElementById('loraSelect');
+    if (loraSelect && config.default_lora) {
+      loraSelect.value = config.default_lora;
     }
-  } catch (e) {
-    console.error('Config load failed', e);
+  } catch (e) { console.error('Config load failed', e); }
+}
+
+function renderNotes() {
+  const banner = document.getElementById('notesBanner');
+  if (!banner) return;
+  const notes = (config.user_notes || '').trim();
+  if (notes) {
+    banner.innerHTML = '📢 ' + escapeHtml(notes);
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
   }
 }
 
-// =========================================================
-// AUTH
-// =========================================================
 function switchAuthTab(mode) {
   authMode = mode;
   document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
   document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
   document.getElementById('authBtn').textContent = mode === 'login' ? 'Login' : 'Sign Up';
+  document.getElementById('authError').style.display = 'none';
 }
 
 async function doAuth() {
@@ -285,11 +343,7 @@ async function doAuth() {
   const errBox = document.getElementById('authError');
   errBox.style.display = 'none';
 
-  if (!email || !password) {
-    errBox.textContent = 'Enter email and password';
-    errBox.style.display = 'block';
-    return;
-  }
+  if (!email || !password) return showErr(errBox, 'Enter email and password');
 
   try {
     const res = await fetch(`/api/main?action=${authMode}`, {
@@ -297,27 +351,26 @@ async function doAuth() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    const data = await res.json();
+    const data = await parseJsonSafe(res);
     if (!res.ok || data.error) throw new Error(data.error || 'Failed');
 
     currentToken = data.token;
     currentUser = data.user;
     localStorage.setItem('token', currentToken);
+    resetUIState();
     showDashboard();
   } catch (err) {
-    errBox.textContent = err.message;
-    errBox.style.display = 'block';
+    showErr(errBox, err.message);
   }
 }
 
 async function fetchMe() {
   try {
-    const res = await fetch('/api/main?action=me', {
-      headers: { Authorization: `Bearer ${currentToken}` }
-    });
+    const res = await fetch('/api/main?action=me', { headers: { Authorization: `Bearer ${currentToken}` } });
     if (!res.ok) throw new Error('Session expired');
-    const data = await res.json();
+    const data = await parseJsonSafe(res);
     currentUser = data.user;
+    resetUIState();
     showDashboard();
   } catch {
     logout();
@@ -328,8 +381,40 @@ function logout() {
   localStorage.removeItem('token');
   currentToken = null;
   currentUser = null;
+  resetUIState();
   hideAll();
   document.getElementById('authView').classList.add('active');
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
+}
+
+function resetUIState() {
+  selectedImageBase64 = null;
+  resultImageData = null;
+  selectedPresetId = null;
+  selectedIsCustom = false;
+
+  const preview = document.getElementById('preview');
+  if (preview) { preview.src = ''; preview.style.display = 'none'; }
+
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) fileInput.value = '';
+
+  const resultCard = document.getElementById('resultCard');
+  if (resultCard) resultCard.style.display = 'none';
+
+  const resultImg = document.getElementById('resultImg');
+  if (resultImg) resultImg.src = '';
+
+  const customPrompt = document.getElementById('customPrompt');
+  if (customPrompt) customPrompt.value = '';
+
+  ['editError', 'editSuccess', 'editStatus', 'customPromptBox'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
 }
 
 function showDashboard() {
@@ -342,6 +427,7 @@ function showDashboard() {
     document.getElementById('userView').classList.add('active');
     document.getElementById('userEmail').textContent = currentUser.email;
     document.getElementById('userBalance').textContent = currentUser.balance;
+    renderNotes();
   }
 }
 
@@ -349,9 +435,6 @@ function hideAll() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 }
 
-// =========================================================
-// USER EDITOR
-// =========================================================
 function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -368,12 +451,23 @@ function handleFileSelect(event) {
 function renderPresets() {
   const grid = document.getElementById('presetGrid');
   if (!grid) return;
-  grid.innerHTML = config.presets.map(p => `
+  let html = config.presets.map(p => `
     <button class="preset-btn" data-id="${p.id}" onclick="selectPreset(${p.id})">
       ${escapeHtml(p.name)}
       <span class="preset-cost">${p.cost} 🪙</span>
     </button>
   `).join('');
+  if (config.custom_prompt_enabled) {
+    html += `
+      <button class="preset-btn custom-btn" data-custom="1" onclick="selectCustom()">
+        ✍️ Custom Prompt
+        <span class="preset-cost">${config.custom_prompt_cost} 🪙</span>
+      </button>
+    `;
+  }
+  grid.innerHTML = html;
+  const customCostSpan = document.getElementById('customCostShow');
+  if (customCostSpan) customCostSpan.textContent = config.custom_prompt_cost;
 }
 
 function selectPreset(id) {
@@ -382,7 +476,17 @@ function selectPreset(id) {
   document.querySelectorAll('.preset-btn').forEach(b => {
     b.classList.toggle('selected', parseInt(b.dataset.id) === id);
   });
+  document.getElementById('customPromptBox').style.display = 'none';
   document.getElementById('customPrompt').value = '';
+}
+
+function selectCustom() {
+  selectedIsCustom = true;
+  selectedPresetId = null;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector('.preset-btn.custom-btn')?.classList.add('selected');
+  document.getElementById('customPromptBox').style.display = 'block';
+  document.getElementById('customPrompt').focus();
 }
 
 async function submitEdit() {
@@ -396,21 +500,20 @@ async function submitEdit() {
   successBox.style.display = 'none';
   resultCard.style.display = 'none';
 
-  if (!selectedImageBase64) { showErr(errBox, 'Select an image first'); return; }
+  if (!selectedImageBase64) return showErr(errBox, 'Select an image first');
 
   let prompt, is_custom = false, preset_id = null;
-  const customText = document.getElementById('customPrompt').value.trim();
-  if (customText) {
-    prompt = customText;
+  if (selectedIsCustom) {
+    prompt = document.getElementById('customPrompt').value.trim();
+    if (!prompt) return showErr(errBox, 'Type your custom prompt');
     is_custom = true;
   } else if (selectedPresetId) {
     const preset = config.presets.find(p => p.id === selectedPresetId);
-    if (!preset) { showErr(errBox, 'Preset not found'); return; }
+    if (!preset) return showErr(errBox, 'Preset not found');
     prompt = preset.prompt;
     preset_id = preset.id;
   } else {
-    showErr(errBox, 'Choose a preset or write a custom prompt');
-    return;
+    return showErr(errBox, 'Choose an edit');
   }
 
   const lora = document.getElementById('loraSelect').value;
@@ -421,13 +524,10 @@ async function submitEdit() {
   try {
     const res = await fetch('/api/main?action=edit', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${currentToken}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ image: selectedImageBase64, prompt, lora, preset_id, is_custom })
     });
-    const data = await res.json();
+    const data = await parseJsonSafe(res);
 
     if (!res.ok || data.error) {
       if (data.refunded) {
@@ -455,6 +555,12 @@ async function submitEdit() {
   }
 }
 
+async function parseJsonSafe(res) {
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch { return { error: 'Server error', message: text.slice(0, 200) }; }
+}
+
 function downloadResult() {
   if (!resultImageData) return;
   const link = document.createElement('a');
@@ -465,12 +571,23 @@ function downloadResult() {
 
 function showErr(box, msg) { box.textContent = msg; box.style.display = 'block'; }
 
-// =========================================================
-// BUY COINS (Razorpay)
-// =========================================================
 function showBuyCoins() {
   renderPacks();
+  renderPricingChart();
   document.getElementById('buyModal').classList.add('active');
+}
+
+function renderPricingChart() {
+  const el = document.getElementById('pricingChart');
+  if (!el) return;
+  let rows = config.presets.map(p => `<tr><td>${escapeHtml(p.name)}</td><td>${p.cost} 🪙</td></tr>`).join('');
+  if (config.custom_prompt_enabled) {
+    rows += `<tr><td>✍️ Custom Prompt</td><td>${config.custom_prompt_cost} 🪙</td></tr>`;
+  }
+  el.innerHTML = `
+    <div class="pricing-chart-title">💡 Current Edit Costs:</div>
+    <table>${rows}</table>
+  `;
 }
 
 function renderPacks() {
@@ -488,13 +605,10 @@ async function buyPack(packId) {
   try {
     const res = await fetch('/api/main?action=create_order', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${currentToken}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ pack_id: packId })
     });
-    const data = await res.json();
+    const data = await parseJsonSafe(res);
     if (!res.ok || data.error) throw new Error(data.error || 'Failed');
 
     closeModal('buyModal');
@@ -506,9 +620,7 @@ async function buyPack(packId) {
       name: 'AI Image Editor',
       description: `${data.coins} coins`,
       order_id: data.order_id,
-      handler: async function(response) {
-        await verifyPayment(response);
-      },
+      handler: async function(response) { await verifyPayment(response); },
       prefill: { email: currentUser.email },
       theme: { color: '#0066ff' }
     };
@@ -523,15 +635,11 @@ async function verifyPayment(response) {
   try {
     const res = await fetch('/api/main?action=verify_payment', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${currentToken}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify(response)
     });
-    const data = await res.json();
+    const data = await parseJsonSafe(res);
     if (!res.ok || data.error) throw new Error(data.error || 'Verification failed');
-
     currentUser.balance = data.new_balance;
     document.getElementById('userBalance').textContent = currentUser.balance;
     alert(`✅ Success! Added ${data.coins_added} coins. Balance: ${data.new_balance}`);
@@ -540,13 +648,8 @@ async function verifyPayment(response) {
   }
 }
 
-// =========================================================
-// ADMIN
-// =========================================================
 function switchAdminTab(tab) {
-  document.querySelectorAll('.tabs button').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === tab);
-  });
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const content = document.getElementById('adminContent');
   content.innerHTML = 'Loading...';
   if (tab === 'users') loadAdminUsers();
@@ -554,6 +657,7 @@ function switchAdminTab(tab) {
   else if (tab === 'packs') loadAdminPacks();
   else if (tab === 'edits') loadAdminEdits();
   else if (tab === 'transactions') loadAdminTransactions();
+  else if (tab === 'settings') loadAdminSettings();
 }
 
 async function loadAdminUsers() {
@@ -561,6 +665,7 @@ async function loadAdminUsers() {
   const users = res.users || [];
   document.getElementById('adminContent').innerHTML = `
     <h3>All Users (${users.length})</h3>
+    <div style="overflow-x: auto;">
     <table>
       <thead><tr><th>Email</th><th>Balance</th><th>Spent ₹</th><th>Signup</th><th>Actions</th></tr></thead>
       <tbody>
@@ -570,13 +675,11 @@ async function loadAdminUsers() {
             <td>${u.balance} 🪙</td>
             <td>₹${u.total_spent}</td>
             <td>${new Date(u.created_at).toLocaleDateString()}</td>
-            <td>
-              <button class="btn btn-small btn-secondary" onclick="promptAddCoins(${u.id}, '${escapeHtml(u.email)}')">+ Coins</button>
-            </td>
+            <td><button class="btn btn-small btn-secondary" onclick="promptAddCoins(${u.id}, '${escapeHtml(u.email)}')">+ Coins</button></td>
           </tr>
         `).join('')}
       </tbody>
-    </table>
+    </table></div>
   `;
 }
 
@@ -587,23 +690,23 @@ async function promptAddCoins(userId, email) {
   if (isNaN(n)) return alert('Invalid number');
   const res = await apiAdmin('admin_add_coins', { user_id: userId, coins: n });
   if (res.error) return alert('Error: ' + res.error);
-  alert(`✅ Done. New balance: ${res.new_balance}`);
+  alert(`✅ New balance: ${res.new_balance}`);
   loadAdminUsers();
 }
 
 async function loadAdminPresets() {
-  const res = await fetch('/api/main?action=config');
-  const cfg = await res.json();
-  const presets = cfg.presets || [];
+  await loadConfig();
+  const presets = config.presets || [];
   document.getElementById('adminContent').innerHTML = `
     <h3>Preset Buttons</h3>
+    <div style="overflow-x: auto;">
     <table>
       <thead><tr><th>Name</th><th>Prompt</th><th>Cost</th><th>Order</th><th>Actions</th></tr></thead>
       <tbody>
         ${presets.map(p => `
           <tr>
             <td>${escapeHtml(p.name)}</td>
-            <td style="max-width: 300px; font-size: 0.8rem;">${escapeHtml(p.prompt).slice(0, 100)}</td>
+            <td style="max-width: 300px; font-size: 0.8rem;">${escapeHtml((p.prompt||'').slice(0, 100))}</td>
             <td>${p.cost} 🪙</td>
             <td>${p.sort_order}</td>
             <td>
@@ -613,20 +716,8 @@ async function loadAdminPresets() {
           </tr>
         `).join('')}
       </tbody>
-    </table>
+    </table></div>
     <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPreset(null)">+ Add Preset</button>
-    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #333;">
-      <h3>Custom Prompt Settings</h3>
-      <div class="form-row">
-        <label>Enabled</label>
-        <input type="checkbox" id="customEnabled" ${cfg.custom_prompt_enabled ? 'checked' : ''}>
-      </div>
-      <div class="form-row">
-        <label>Cost (coins)</label>
-        <input type="number" id="customCostInput" value="${cfg.custom_prompt_cost}">
-      </div>
-      <button class="btn btn-success" onclick="saveCustomSettings()">Save Settings</button>
-    </div>
   `;
 }
 
@@ -667,22 +758,12 @@ async function deletePreset(id) {
   loadAdminPresets();
 }
 
-async function saveCustomSettings() {
-  const payload = {
-    custom_prompt_enabled: document.getElementById('customEnabled').checked,
-    custom_prompt_cost: parseInt(document.getElementById('customCostInput').value)
-  };
-  const res = await apiAdmin('admin_save_settings', payload);
-  if (res.error) return alert('Error: ' + res.error);
-  alert('✅ Saved');
-}
-
 async function loadAdminPacks() {
-  const res = await fetch('/api/main?action=config');
-  const cfg = await res.json();
-  const packs = cfg.coin_packs || [];
+  await loadConfig();
+  const packs = config.coin_packs || [];
   document.getElementById('adminContent').innerHTML = `
     <h3>Coin Packs</h3>
+    <div style="overflow-x: auto;">
     <table>
       <thead><tr><th>Price</th><th>Coins</th><th>Order</th><th>Actions</th></tr></thead>
       <tbody>
@@ -698,7 +779,7 @@ async function loadAdminPacks() {
           </tr>
         `).join('')}
       </tbody>
-    </table>
+    </table></div>
     <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPack(null)">+ Add Pack</button>
   `;
 }
@@ -740,38 +821,71 @@ async function deletePack(id) {
 
 async function loadAdminEdits() {
   const res = await apiAdmin('admin_edits');
-  const edits = res.edits || [];
+  editsList = res.edits || [];
   document.getElementById('adminContent').innerHTML = `
-    <h3>All Edits (${edits.length})</h3>
+    <h3>All Edits (${editsList.length}) <span style="font-size:0.8rem;color:#888;">Click any to open swipeable viewer</span></h3>
     <div class="session-grid">
-      ${edits.map(e => `
-        <div class="session-card">
+      ${editsList.map((e, idx) => `
+        <div class="session-card" onclick="openEditViewer(${idx})">
           <div class="session-images">
             <div>
               <div class="session-label">Input</div>
-              ${e.input_url ? `<img src="${e.input_url}" onclick="showImage('${e.input_url}')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
+              ${e.input_url ? `<img src="${e.input_url}">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
             </div>
             <div>
               <div class="session-label">Output</div>
-              ${e.output_url ? `<img src="${e.output_url}" onclick="showImage('${e.output_url}')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
+              ${e.output_url ? `<img src="${e.output_url}">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
             </div>
           </div>
           <div class="session-meta"><strong>${escapeHtml(e.email || 'unknown')}</strong></div>
-          <div class="session-prompt">${escapeHtml(e.prompt || '')}</div>
-          <div class="session-meta">
-            ${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}
-          </div>
+          <div class="session-prompt">${escapeHtml((e.prompt||'').slice(0, 100))}</div>
+          <div class="session-meta">${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}</div>
         </div>
       `).join('')}
     </div>
   `;
 }
 
+function openEditViewer(index) {
+  currentEditIndex = index;
+  renderEditViewer();
+  document.getElementById('editViewerModal').classList.add('active');
+}
+
+function renderEditViewer() {
+  const e = editsList[currentEditIndex];
+  if (!e) return;
+  document.getElementById('viewerInput').src = e.input_url || '';
+  document.getElementById('viewerOutput').src = e.output_url || '';
+  document.getElementById('viewerUser').textContent = e.email || 'unknown';
+  document.getElementById('viewerPrompt').textContent = e.prompt || '';
+  document.getElementById('viewerMeta').textContent = `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`;
+  document.getElementById('viewerInfo').textContent = `${currentEditIndex + 1} / ${editsList.length}`;
+  document.getElementById('viewerPrev').disabled = currentEditIndex === 0;
+  document.getElementById('viewerNext').disabled = currentEditIndex === editsList.length - 1;
+}
+
+function viewerNav(delta) {
+  const newIdx = currentEditIndex + delta;
+  if (newIdx < 0 || newIdx >= editsList.length) return;
+  currentEditIndex = newIdx;
+  renderEditViewer();
+}
+
+// Keyboard navigation for edit viewer
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('editViewerModal').classList.contains('active')) return;
+  if (e.key === 'ArrowLeft') viewerNav(-1);
+  else if (e.key === 'ArrowRight') viewerNav(1);
+  else if (e.key === 'Escape') closeModal('editViewerModal');
+});
+
 async function loadAdminTransactions() {
   const res = await apiAdmin('admin_transactions');
   const txns = res.transactions || [];
   document.getElementById('adminContent').innerHTML = `
     <h3>Transactions (${txns.length})</h3>
+    <div style="overflow-x: auto;">
     <table>
       <thead><tr><th>User</th><th>Amount</th><th>Coins</th><th>Status</th><th>Time</th></tr></thead>
       <tbody>
@@ -785,32 +899,74 @@ async function loadAdminTransactions() {
           </tr>
         `).join('')}
       </tbody>
-    </table>
+    </table></div>
   `;
+}
+
+async function loadAdminSettings() {
+  await loadConfig();
+  const loras = ['Photo-to-Anime','Anime-V2','Multiple-Angles','Light-Migration','Upscaler','Style-Transfer','Manga-Tone','Anything2Real','Polaroid-Photo','Unblur-Anything','Hyper-Realistic-Portrait','Ultra-Realistic-Portrait','Pixar-Inspired-3D','Noir-Comic-Book','Any-light','Studio-DeLight','Cinematic-FlatLog','Midnight-Noir-Eyes-Spotlight','Fal-Multiple-Angles'];
+
+  document.getElementById('adminContent').innerHTML = `
+    <h3>General Settings</h3>
+
+    <div class="form-row">
+      <label>📢 Notes / Tips (shown to users above upload area)</label>
+      <textarea id="userNotesInput" style="min-height: 100px;" placeholder="e.g., New Anime style added! Try preset 3 for best results.">${escapeHtml(config.user_notes || '')}</textarea>
+    </div>
+
+    <div class="form-row">
+      <label>Default LoRA (shown when user opens the page)</label>
+      <select id="defaultLoraInput">
+        ${loras.map(l => `<option value="${l}" ${config.default_lora === l ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="customEnabled" ${config.custom_prompt_enabled ? 'checked' : ''}>
+      <label for="customEnabled" style="margin: 0;">Enable Custom Prompt Button</label>
+    </div>
+
+    <div class="form-row">
+      <label>Custom Prompt Cost (coins)</label>
+      <input type="number" id="customCostInput" value="${config.custom_prompt_cost}">
+    </div>
+
+    <button class="btn btn-success" onclick="saveAllSettings()">💾 Save Settings</button>
+  `;
+}
+
+async function saveAllSettings() {
+  const payload = {
+    user_notes: document.getElementById('userNotesInput').value,
+    default_lora: document.getElementById('defaultLoraInput').value,
+    custom_prompt_enabled: document.getElementById('customEnabled').checked,
+    custom_prompt_cost: parseInt(document.getElementById('customCostInput').value) || 120
+  };
+  const res = await apiAdmin('admin_save_settings', payload);
+  if (res.error) return alert('Error: ' + res.error);
+  alert('✅ Settings saved');
+  await loadConfig();
 }
 
 async function apiAdmin(action, body) {
   const res = await fetch(`/api/main?action=${action}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${currentToken}`
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: body ? JSON.stringify(body) : null
   });
-  return await res.json();
+  return await parseJsonSafe(res);
 }
 
-// =========================================================
-// UTILITIES
-// =========================================================
 function showImage(url) {
   document.getElementById('modalImage').src = url;
   document.getElementById('imgModal').classList.add('active');
 }
+
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
+
 function escapeHtml(s) {
   const div = document.createElement('div');
   div.textContent = String(s ?? '');
