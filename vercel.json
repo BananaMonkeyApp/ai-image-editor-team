@@ -1,7 +1,10 @@
 {
   "functions": {
-    "api/edit.js": {
+    "api/main.js": {
       "maxDuration": 90
+    },
+    "api/webhook.js": {
+      "maxDuration": 30
     }
   }
 }
