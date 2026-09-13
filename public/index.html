@@ -95,7 +95,6 @@
   .modal-content { background: #1a1a1a; padding: 24px; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-content h3 { margin-bottom: 15px; }
 
-  /* Result thumbnail (tap to open zoom viewer) */
   .result-thumb-wrap { position: relative; cursor: zoom-in; }
   .result-thumb { max-width: 100%; max-height: 500px; border-radius: 8px; margin: 12px auto; display: block; }
   .zoom-hint { position: absolute; top: 20px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
@@ -112,9 +111,7 @@
   .session-prompt { font-size: 0.8rem; color: #ddd; background: #0f0f0f; padding: 6px; border-radius: 6px; margin: 4px 0; max-height: 60px; overflow-y: auto; }
   .session-meta { font-size: 0.7rem; color: #888; }
 
-  /* =========================================================
-     FULL-SCREEN ZOOM VIEWER
-     ========================================================= */
+  /* FULL-SCREEN ZOOM VIEWER */
   .viewer-overlay {
     position: fixed; inset: 0; background: #000; z-index: 200;
     display: none; flex-direction: column;
@@ -140,15 +137,22 @@
   .viewer-canvas {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
   }
   .viewer-canvas img {
     max-width: 100%; max-height: 100%;
+    width: auto; height: auto;
+    object-fit: contain;
     -webkit-user-drag: none;
     user-select: none;
     -webkit-user-select: none;
     pointer-events: none;
-    transform-origin: 0 0;
+    transform-origin: center center;
     will-change: transform;
+    transition: transform 0.15s ease-out;
+  }
+  .viewer-canvas img.dragging {
+    transition: none;
   }
 
   .viewer-arrow {
@@ -187,7 +191,6 @@
 <div class="container">
   <h1>🎨 AI Image Editor</h1>
 
-  <!-- LOGIN / SIGNUP -->
   <div id="authView" class="view active auth-container">
     <div class="auth-tabs">
       <button id="tabLogin" class="active" onclick="switchAuthTab('login')">Login</button>
@@ -201,7 +204,6 @@
     </div>
   </div>
 
-  <!-- USER DASHBOARD -->
   <div id="userView" class="view">
     <div class="topbar">
       <div class="user-info"><span id="userEmail" style="font-size: 0.9rem; color: #aaa;"></span></div>
@@ -280,7 +282,6 @@
     </div>
   </div>
 
-  <!-- ADMIN DASHBOARD -->
   <div id="adminView" class="view">
     <div class="topbar">
       <div><strong>👨‍💼 Admin Panel</strong> — <span id="adminEmail" style="color: #888;"></span></div>
@@ -297,7 +298,6 @@
     <div id="adminContent" class="card">Loading...</div>
   </div>
 
-  <!-- BUY COINS MODAL -->
   <div class="modal" id="buyModal" onclick="if(event.target===this) closeModal('buyModal')">
     <div class="modal-content">
       <h3>Buy Coins</h3>
@@ -307,12 +307,10 @@
     </div>
   </div>
 
-  <!-- GENERIC MODAL -->
   <div class="modal" id="genericModal" onclick="if(event.target===this) closeModal('genericModal')">
     <div class="modal-content" id="genericModalContent"></div>
   </div>
 
-  <!-- FULL-SCREEN ZOOM VIEWER -->
   <div class="viewer-overlay" id="viewer">
     <div class="viewer-header">
       <div class="info" id="viewerInfo"></div>
@@ -334,9 +332,6 @@
 </div>
 
 <script>
-// =========================================================
-// STATE
-// =========================================================
 let currentUser = null;
 let currentToken = null;
 let config = { presets: [], coin_packs: [], custom_prompt_cost: 120, custom_prompt_enabled: true, default_lora: 'Photo-to-Anime', user_notes: '', razorpay_key_id: '' };
@@ -347,23 +342,14 @@ let resultImageData = null;
 let authMode = 'login';
 let editsList = [];
 
-// Viewer state
-// viewerItems: array of { url, label, editId, prompt, meta }
 let viewerItems = [];
 let viewerIndex = 0;
-
-// Zoom & pan state (relative to viewport)
 let vZoom = 1, vTx = 0, vTy = 0;
-let vNaturalFit = 1;  // scale that fits image to viewport (base scale)
-let vImgSize = { w: 0, h: 0 };  // natural image size
-let vBodySize = { w: 0, h: 0 };
-
-// Interaction state
 let vIsDragging = false;
 let vLastPtr = null;
-let vPointers = new Map();  // touch/mouse pointers
+let vPointers = new Map();
 let vPinchStart = null;
-let vLastTouchX = null;  // for swipe detection
+let vLastTouchX = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   currentToken = localStorage.getItem('token');
@@ -485,9 +471,6 @@ function showDashboard() {
 
 function hideAll() { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); }
 
-// =========================================================
-// IMAGE COMPRESSION
-// =========================================================
 async function compressImage(file, maxDim = 1600, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -893,11 +876,6 @@ async function deleteEdit(id) {
   loadAdminEdits();
 }
 
-// =========================================================
-// GALLERY VIEWER (admin edits + user result)
-// =========================================================
-
-// Build flat gallery items from editsList (input, output, input, output, ...)
 function buildGalleryItems() {
   const items = [];
   editsList.forEach(e => {
@@ -925,19 +903,13 @@ function buildGalleryItems() {
 
 function openGalleryAt(editIdx, which) {
   viewerItems = buildGalleryItems();
-  // Find flat index: count inputs+outputs before editIdx
   let flatIdx = 0;
   for (let i = 0; i < editIdx; i++) {
     if (editsList[i].input_url) flatIdx++;
     if (editsList[i].output_url) flatIdx++;
   }
-  // Adjust for which
   const target = editsList[editIdx];
-  if (which === 'input' && target.input_url) {
-    // already at input
-  } else if (which === 'output') {
-    if (target.input_url) flatIdx++;
-  }
+  if (which === 'output' && target.input_url) flatIdx++;
   viewerIndex = flatIdx;
   openViewer();
 }
@@ -989,16 +961,8 @@ function loadViewerImage() {
   document.getElementById('viewerPrev').disabled = viewerIndex === 0;
   document.getElementById('viewerNext').disabled = viewerIndex === viewerItems.length - 1;
 
-  // Load image and set up fit
-  img.onload = () => {
-    vImgSize = { w: img.naturalWidth, h: img.naturalHeight };
-    computeFitAndReset();
-  };
   img.src = item.url;
-  if (img.complete && img.naturalWidth) {
-    vImgSize = { w: img.naturalWidth, h: img.naturalHeight };
-    computeFitAndReset();
-  }
+  resetViewerTransform();
 }
 
 function viewerNav(delta) {
@@ -1008,55 +972,31 @@ function viewerNav(delta) {
   loadViewerImage();
 }
 
-// =========================================================
-// FREE ZOOM & PAN
-// =========================================================
-
-function measureBody() {
-  const body = document.getElementById('viewerBody');
-  const r = body.getBoundingClientRect();
-  vBodySize = { w: r.width, h: r.height };
-}
-
-function computeFitAndReset() {
-  measureBody();
-  const iw = vImgSize.w, ih = vImgSize.h;
-  const bw = vBodySize.w, bh = vBodySize.h;
-  if (!iw || !ih || !bw || !bh) return;
-  // Fit: scale so image fills viewport without cropping
-  vNaturalFit = Math.min(bw / iw, bh / ih);
-  resetViewerTransform();
-}
-
 function resetViewerTransform() {
-  measureBody();
   vZoom = 1;
-  // Center the image
-  const scaledW = vImgSize.w * vNaturalFit * vZoom;
-  const scaledH = vImgSize.h * vNaturalFit * vZoom;
-  vTx = (vBodySize.w - scaledW) / 2;
-  vTy = (vBodySize.h - scaledH) / 2;
+  vTx = 0;
+  vTy = 0;
   applyViewerTransform();
 }
 
 function applyViewerTransform() {
   const img = document.getElementById('viewerImg');
   if (!img) return;
-  const scale = vNaturalFit * vZoom;
-  img.style.width = vImgSize.w + 'px';
-  img.style.height = vImgSize.h + 'px';
-  img.style.transform = `translate(${vTx}px, ${vTy}px) scale(${scale})`;
+  img.style.transform = `translate(${vTx}px, ${vTy}px) scale(${vZoom})`;
 }
 
 function zoomAt(clientX, clientY, factor) {
-  measureBody();
-  const bodyRect = document.getElementById('viewerBody').getBoundingClientRect();
-  const px = clientX - bodyRect.left;
-  const py = clientY - bodyRect.top;
+  const img = document.getElementById('viewerImg');
+  if (!img) return;
+  const rect = img.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const offsetX = clientX - cx;
+  const offsetY = clientY - cy;
   const newZoom = Math.max(0.5, Math.min(20, vZoom * factor));
   const actualFactor = newZoom / vZoom;
-  vTx = px - (px - vTx) * actualFactor;
-  vTy = py - (py - vTy) * actualFactor;
+  vTx = actualFactor * (vTx - offsetX) + offsetX;
+  vTy = actualFactor * (vTy - offsetY) + offsetY;
   vZoom = newZoom;
   applyViewerTransform();
 }
@@ -1065,29 +1005,22 @@ function setupViewerGestures() {
   const body = document.getElementById('viewerBody');
   if (!body) return;
 
-  // WHEEL zoom
   body.addEventListener('wheel', (e) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.12 : 0.89;
     zoomAt(e.clientX, e.clientY, factor);
   }, { passive: false });
 
-  // Double click reset
   body.addEventListener('dblclick', (e) => {
     if (vZoom > 1.05) resetViewerTransform();
     else zoomAt(e.clientX, e.clientY, 2.5);
   });
 
-  // POINTER events (unified mouse + touch)
   body.addEventListener('pointerdown', onPointerDown);
   body.addEventListener('pointermove', onPointerMove);
   body.addEventListener('pointerup', onPointerUp);
   body.addEventListener('pointercancel', onPointerUp);
   body.addEventListener('pointerleave', onPointerUp);
-
-  window.addEventListener('resize', () => {
-    if (document.getElementById('viewer').classList.contains('active')) computeFitAndReset();
-  });
 }
 
 function onPointerDown(e) {
@@ -1098,18 +1031,16 @@ function onPointerDown(e) {
   if (vPointers.size === 1) {
     vIsDragging = true;
     vLastPtr = { x: e.clientX, y: e.clientY };
-    vLastTouchX = e.clientX;  // for swipe detection
+    vLastTouchX = e.clientX;
+    document.getElementById('viewerImg').classList.add('dragging');
   } else if (vPointers.size === 2) {
-    // Pinch start
     const pts = [...vPointers.values()];
     vPinchStart = {
       dist: distance(pts[0], pts[1]),
-      cx: (pts[0].x + pts[1].x) / 2,
-      cy: (pts[0].y + pts[1].y) / 2,
       zoom: vZoom
     };
     vIsDragging = false;
-    vLastTouchX = null;  // cancel swipe
+    vLastTouchX = null;
   }
 }
 
@@ -1118,24 +1049,13 @@ function onPointerMove(e) {
   vPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (vPointers.size === 2 && vPinchStart) {
-    // Pinch zoom
     const pts = [...vPointers.values()];
     const newDist = distance(pts[0], pts[1]);
     const scale = newDist / vPinchStart.dist;
     const newZoom = Math.max(0.5, Math.min(20, vPinchStart.zoom * scale));
-
-    // Zoom around pinch center
     const cx = (pts[0].x + pts[1].x) / 2;
     const cy = (pts[0].y + pts[1].y) / 2;
-    const bodyRect = document.getElementById('viewerBody').getBoundingClientRect();
-    const px = cx - bodyRect.left;
-    const py = cy - bodyRect.top;
-
-    const actualFactor = newZoom / vZoom;
-    vTx = px - (px - vTx) * actualFactor;
-    vTy = py - (py - vTy) * actualFactor;
-    vZoom = newZoom;
-    applyViewerTransform();
+    zoomAt(cx, cy, newZoom / vZoom);
   } else if (vPointers.size === 1 && vIsDragging && vLastPtr) {
     const dx = e.clientX - vLastPtr.x;
     const dy = e.clientY - vLastPtr.y;
@@ -1149,7 +1069,6 @@ function onPointerMove(e) {
 function onPointerUp(e) {
   if (!vPointers.has(e.pointerId)) return;
 
-  // Swipe detection (single touch, no zoom)
   if (vPointers.size === 1 && vZoom <= 1.05 && vLastTouchX !== null) {
     const dx = e.clientX - vLastTouchX;
     if (Math.abs(dx) > 60) {
@@ -1163,6 +1082,7 @@ function onPointerUp(e) {
     vIsDragging = false;
     vLastPtr = null;
     vLastTouchX = null;
+    document.getElementById('viewerImg').classList.remove('dragging');
   }
 }
 
@@ -1170,7 +1090,6 @@ function distance(p1, p2) {
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
 }
 
-// Keyboard
 document.addEventListener('keydown', (e) => {
   if (!document.getElementById('viewer').classList.contains('active')) return;
   if (e.key === 'ArrowLeft') viewerNav(-1);
