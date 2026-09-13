@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>AI Image Editor</title>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overscroll-behavior: none; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0a0a0a; color: #eee; min-height: 100vh; }
   .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
   h1 { text-align: center; margin-bottom: 20px; background: linear-gradient(90deg, #06f, #f0f); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 1.8rem; }
@@ -94,39 +95,86 @@
   .modal-content { background: #1a1a1a; padding: 24px; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-content h3 { margin-bottom: 15px; }
 
-  .result-img { max-width: 100%; max-height: 500px; border-radius: 8px; margin: 12px auto; display: block; }
+  /* Result thumbnail (tap to open zoom viewer) */
+  .result-thumb-wrap { position: relative; cursor: zoom-in; }
+  .result-thumb { max-width: 100%; max-height: 500px; border-radius: 8px; margin: 12px auto; display: block; }
+  .zoom-hint { position: absolute; top: 20px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
+
   .logout-btn { background: #333; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
 
   .session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; cursor: pointer; position: relative; }
+  .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; position: relative; }
   .session-card:hover { border-color: #06f; }
   .session-card .del-btn { position: absolute; top: 6px; right: 6px; background: rgba(160,0,0,0.9); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; z-index: 2; }
   .session-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-  .session-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; }
+  .session-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; cursor: pointer; }
   .session-label { font-size: 0.7rem; color: #888; }
   .session-prompt { font-size: 0.8rem; color: #ddd; background: #0f0f0f; padding: 6px; border-radius: 6px; margin: 4px 0; max-height: 60px; overflow-y: auto; }
   .session-meta { font-size: 0.7rem; color: #888; }
 
-  /* Full-screen image viewer */
-  .viewer-overlay { position: fixed; inset: 0; background: #000; z-index: 200; display: none; flex-direction: column; }
+  /* =========================================================
+     FULL-SCREEN ZOOM VIEWER
+     ========================================================= */
+  .viewer-overlay {
+    position: fixed; inset: 0; background: #000; z-index: 200;
+    display: none; flex-direction: column;
+  }
   .viewer-overlay.active { display: flex; }
-  .viewer-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); border-bottom: 1px solid #222; color: #fff; }
+
+  .viewer-header {
+    padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; color: #fff;
+    z-index: 3; flex-shrink: 0;
+  }
   .viewer-header .info { font-size: 0.85rem; color: #aaa; }
   .viewer-header button { background: #333; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
-  .viewer-body { flex: 1; position: relative; overflow: hidden; touch-action: none; }
-  .viewer-image { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .viewer-image img { max-width: 100%; max-height: 100%; user-select: none; -webkit-user-drag: none; }
-  .viewer-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; width: 50px; height: 80px; font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
-  .viewer-arrow:hover { background: rgba(255,255,255,0.35); }
-  .viewer-arrow.left { left: 10px; }
-  .viewer-arrow.right { right: 10px; }
+
+  .viewer-body {
+    flex: 1; position: relative; overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .viewer-canvas {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .viewer-canvas img {
+    max-width: 100%; max-height: 100%;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+
+  .viewer-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); color: white; border: none;
+    width: 44px; height: 70px; font-size: 2rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; border-radius: 8px;
+    z-index: 2;
+  }
+  .viewer-arrow:hover { background: rgba(255,255,255,0.3); }
+  .viewer-arrow.left { left: 8px; }
+  .viewer-arrow.right { right: 8px; }
   .viewer-arrow:disabled { opacity: 0.2; cursor: not-allowed; }
-  .viewer-footer { padding: 12px; background: rgba(0,0,0,0.85); border-top: 1px solid #222; color: #ddd; max-height: 30vh; overflow-y: auto; }
-  .viewer-footer .prompt-line { font-size: 0.9rem; color: #ddd; background: #1a1a1a; padding: 8px; border-radius: 6px; margin: 6px 0; }
-  .viewer-footer .meta-line { font-size: 0.75rem; color: #888; }
-  .viewer-toggle { display: flex; gap: 4px; margin-top: 8px; }
-  .viewer-toggle button { flex: 1; background: #222; border: 1px solid #333; color: #aaa; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-  .viewer-toggle button.active { background: #06f; color: white; border-color: #06f; }
+
+  .viewer-footer {
+    padding: 10px 14px; background: rgba(0,0,0,0.85); border-top: 1px solid #222;
+    color: #ddd; max-height: 30vh; overflow-y: auto; flex-shrink: 0;
+  }
+  .viewer-footer .prompt-line { font-size: 0.85rem; color: #ddd; background: #1a1a1a; padding: 8px; border-radius: 6px; margin: 4px 0; }
+  .viewer-footer .meta-line { font-size: 0.72rem; color: #888; }
+
+  .viewer-fit-btn {
+    position: absolute; bottom: 12px; right: 12px; z-index: 3;
+    background: rgba(0,0,0,0.7); color: white; border: none;
+    padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+  }
 
   label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: #aaa; }
   .form-row { margin-bottom: 10px; }
@@ -223,8 +271,11 @@
     <div class="success" id="editSuccess" style="display:none;"></div>
 
     <div class="card" id="resultCard" style="display:none;">
-      <div class="card-title">Result</div>
-      <img id="resultImg" class="result-img">
+      <div class="card-title">Result <span style="font-size: 0.75rem; color: #888;">(tap image to zoom)</span></div>
+      <div class="result-thumb-wrap" onclick="openResultViewer()">
+        <img id="resultImg" class="result-thumb">
+        <div class="zoom-hint">🔍 Tap to zoom</div>
+      </div>
       <button class="btn btn-success btn-full" onclick="downloadResult()">⬇️ Download</button>
     </div>
   </div>
@@ -261,7 +312,7 @@
     <div class="modal-content" id="genericModalContent"></div>
   </div>
 
-  <!-- FULL-SCREEN IMAGE VIEWER -->
+  <!-- FULL-SCREEN ZOOM VIEWER -->
   <div class="viewer-overlay" id="viewer">
     <div class="viewer-header">
       <div class="info" id="viewerInfo"></div>
@@ -269,23 +320,23 @@
     </div>
     <div class="viewer-body" id="viewerBody">
       <button class="viewer-arrow left" id="viewerPrev" onclick="viewerNav(-1)">‹</button>
-      <div class="viewer-image">
+      <div class="viewer-canvas">
         <img id="viewerImg" alt="">
       </div>
       <button class="viewer-arrow right" id="viewerNext" onclick="viewerNav(1)">›</button>
+      <button class="viewer-fit-btn" onclick="resetViewerTransform()">↺ Fit</button>
     </div>
-    <div class="viewer-footer">
-      <div class="viewer-toggle">
-        <button id="viewerBtnInput" class="active" onclick="viewerSetImage('input')">Input</button>
-        <button id="viewerBtnOutput" onclick="viewerSetImage('output')">Output</button>
-      </div>
-      <div class="prompt-line" id="viewerPrompt"></div>
+    <div class="viewer-footer" id="viewerFooter">
+      <div class="prompt-line" id="viewerPrompt" style="display:none;"></div>
       <div class="meta-line" id="viewerMeta"></div>
     </div>
   </div>
 </div>
 
 <script>
+// =========================================================
+// STATE
+// =========================================================
 let currentUser = null;
 let currentToken = null;
 let config = { presets: [], coin_packs: [], custom_prompt_cost: 120, custom_prompt_enabled: true, default_lora: 'Photo-to-Anime', user_notes: '', razorpay_key_id: '' };
@@ -295,15 +346,24 @@ let selectedImageBase64 = null;
 let resultImageData = null;
 let authMode = 'login';
 let editsList = [];
-let currentEditIndex = 0;
-let viewerImageMode = 'input';
 
-// Zoom & pan state for viewer
-let viewerZoom = 1;
-let viewerPanX = 0, viewerPanY = 0;
-let viewerLastTouches = null;
-let viewerLastMousePos = null;
-let viewerIsDragging = false;
+// Viewer state
+// viewerItems: array of { url, label, editId, prompt, meta }
+let viewerItems = [];
+let viewerIndex = 0;
+
+// Zoom & pan state (relative to viewport)
+let vZoom = 1, vTx = 0, vTy = 0;
+let vNaturalFit = 1;  // scale that fits image to viewport (base scale)
+let vImgSize = { w: 0, h: 0 };  // natural image size
+let vBodySize = { w: 0, h: 0 };
+
+// Interaction state
+let vIsDragging = false;
+let vLastPtr = null;
+let vPointers = new Map();  // touch/mouse pointers
+let vPinchStart = null;
+let vLastTouchX = null;  // for swipe detection
 
 window.addEventListener('DOMContentLoaded', () => {
   currentToken = localStorage.getItem('token');
@@ -332,9 +392,7 @@ function renderNotes() {
   if (notes) {
     banner.innerHTML = '📢 ' + escapeHtml(notes);
     banner.style.display = 'block';
-  } else {
-    banner.style.display = 'none';
-  }
+  } else banner.style.display = 'none';
 }
 
 function switchAuthTab(mode) {
@@ -364,9 +422,7 @@ async function doAuth() {
     localStorage.setItem('token', currentToken);
     resetUIState();
     showDashboard();
-  } catch (err) {
-    showErr(errBox, err.message);
-  }
+  } catch (err) { showErr(errBox, err.message); }
 }
 
 async function fetchMe() {
@@ -377,9 +433,7 @@ async function fetchMe() {
     currentUser = data.user;
     resetUIState();
     showDashboard();
-  } catch {
-    logout();
-  }
+  } catch { logout(); }
 }
 
 function logout() {
@@ -429,12 +483,10 @@ function showDashboard() {
   }
 }
 
-function hideAll() {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-}
+function hideAll() { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); }
 
 // =========================================================
-// IMAGE COMPRESSION (crucial fix for payload size)
+// IMAGE COMPRESSION
 // =========================================================
 async function compressImage(file, maxDim = 1600, quality = 0.85) {
   return new Promise((resolve, reject) => {
@@ -443,22 +495,14 @@ async function compressImage(file, maxDim = 1600, quality = 0.85) {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
-        // Resize if larger than maxDim
         if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round(height * (maxDim / width));
-            width = maxDim;
-          } else {
-            width = Math.round(width * (maxDim / height));
-            height = maxDim;
-          }
+          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
         }
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        // Output JPEG for max compression
         canvas.toBlob((blob) => {
           const r2 = new FileReader();
           r2.onload = (ev) => resolve({ dataUrl: ev.target.result, sizeKB: Math.round(blob.size / 1024), width, height });
@@ -500,15 +544,10 @@ function renderPresets() {
     <button class="preset-btn" data-id="${p.id}" onclick="selectPreset(${p.id})">
       ${escapeHtml(p.name)}
       <span class="preset-cost">${p.cost} 🪙</span>
-    </button>
-  `).join('');
+    </button>`).join('');
   if (config.custom_prompt_enabled) {
-    html += `
-      <button class="preset-btn custom-btn" data-custom="1" onclick="selectCustom()">
-        ✍️ Custom Prompt
-        <span class="preset-cost">${config.custom_prompt_cost} 🪙</span>
-      </button>
-    `;
+    html += `<button class="preset-btn custom-btn" data-custom="1" onclick="selectCustom()">
+      ✍️ Custom Prompt<span class="preset-cost">${config.custom_prompt_cost} 🪙</span></button>`;
   }
   grid.innerHTML = html;
   const c = document.getElementById('customCostShow');
@@ -555,9 +594,7 @@ async function submitEdit() {
     if (!preset) return showErr(errBox, 'Preset not found');
     prompt = preset.prompt;
     preset_id = preset.id;
-  } else {
-    return showErr(errBox, 'Choose an edit');
-  }
+  } else return showErr(errBox, 'Choose an edit');
   const lora = document.getElementById('loraSelect').value;
 
   btn.disabled = true;
@@ -574,9 +611,7 @@ async function submitEdit() {
         showErr(errBox, `${data.message || data.error}. Refunded ${data.refunded} coins.`);
         currentUser.balance = data.new_balance;
         document.getElementById('userBalance').textContent = currentUser.balance;
-      } else {
-        showErr(errBox, data.message || data.error || 'Failed');
-      }
+      } else showErr(errBox, data.message || data.error || 'Failed');
       return;
     }
     resultImageData = data.image;
@@ -586,12 +621,8 @@ async function submitEdit() {
     document.getElementById('userBalance').textContent = currentUser.balance;
     successBox.textContent = `✅ Edit complete! -${data.coins_spent} coins`;
     successBox.style.display = 'block';
-  } catch (err) {
-    showErr(errBox, err.message);
-  } finally {
-    btn.disabled = false;
-    status.style.display = 'none';
-  }
+  } catch (err) { showErr(errBox, err.message); }
+  finally { btn.disabled = false; status.style.display = 'none'; }
 }
 
 async function parseJsonSafe(res) {
@@ -627,8 +658,7 @@ function renderPacks() {
     <div class="pack-btn" onclick="buyPack(${p.id})">
       <div class="pack-price">₹${p.price_paise / 100}</div>
       <div class="pack-coins">${p.coins} coins</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 async function buyPack(packId) {
@@ -690,14 +720,13 @@ async function loadAdminUsers() {
     <table>
       <thead><tr><th>Email</th><th>Balance</th><th>Spent ₹</th><th>Signup</th><th>Actions</th></tr></thead>
       <tbody>
-        ${users.map(u => `
-          <tr>
-            <td>${escapeHtml(u.email)} ${u.is_admin ? '👑' : ''}</td>
-            <td>${u.balance} 🪙</td>
-            <td>₹${u.total_spent}</td>
-            <td>${new Date(u.created_at).toLocaleDateString()}</td>
-            <td><button class="btn btn-small btn-secondary" onclick="promptAddCoins(${u.id}, '${escapeHtml(u.email)}')">+ Coins</button></td>
-          </tr>`).join('')}
+        ${users.map(u => `<tr>
+          <td>${escapeHtml(u.email)} ${u.is_admin ? '👑' : ''}</td>
+          <td>${u.balance} 🪙</td>
+          <td>₹${u.total_spent}</td>
+          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+          <td><button class="btn btn-small btn-secondary" onclick="promptAddCoins(${u.id}, '${escapeHtml(u.email)}')">+ Coins</button></td>
+        </tr>`).join('')}
       </tbody>
     </table></div>`;
 }
@@ -722,17 +751,16 @@ async function loadAdminPresets() {
     <table>
       <thead><tr><th>Name</th><th>Prompt</th><th>Cost</th><th>Order</th><th>Actions</th></tr></thead>
       <tbody>
-        ${presets.map(p => `
-          <tr>
-            <td>${escapeHtml(p.name)}</td>
-            <td style="max-width: 300px; font-size: 0.8rem;">${escapeHtml((p.prompt||'').slice(0, 100))}</td>
-            <td>${p.cost} 🪙</td>
-            <td>${p.sort_order}</td>
-            <td>
-              <button class="btn btn-small btn-secondary" onclick='editPreset(${JSON.stringify(p)})'>Edit</button>
-              <button class="btn btn-small btn-danger" onclick="deletePreset(${p.id})">Delete</button>
-            </td>
-          </tr>`).join('')}
+        ${presets.map(p => `<tr>
+          <td>${escapeHtml(p.name)}</td>
+          <td style="max-width: 300px; font-size: 0.8rem;">${escapeHtml((p.prompt||'').slice(0, 100))}</td>
+          <td>${p.cost} 🪙</td>
+          <td>${p.sort_order}</td>
+          <td>
+            <button class="btn btn-small btn-secondary" onclick='editPreset(${JSON.stringify(p)})'>Edit</button>
+            <button class="btn btn-small btn-danger" onclick="deletePreset(${p.id})">Delete</button>
+          </td>
+        </tr>`).join('')}
       </tbody>
     </table></div>
     <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPreset(null)">+ Add Preset</button>`;
@@ -783,16 +811,15 @@ async function loadAdminPacks() {
     <table>
       <thead><tr><th>Price</th><th>Coins</th><th>Order</th><th>Actions</th></tr></thead>
       <tbody>
-        ${packs.map(p => `
-          <tr>
-            <td>₹${p.price_paise / 100}</td>
-            <td>${p.coins} 🪙</td>
-            <td>${p.sort_order}</td>
-            <td>
-              <button class="btn btn-small btn-secondary" onclick='editPack(${JSON.stringify(p)})'>Edit</button>
-              <button class="btn btn-small btn-danger" onclick="deletePack(${p.id})">Delete</button>
-            </td>
-          </tr>`).join('')}
+        ${packs.map(p => `<tr>
+          <td>₹${p.price_paise / 100}</td>
+          <td>${p.coins} 🪙</td>
+          <td>${p.sort_order}</td>
+          <td>
+            <button class="btn btn-small btn-secondary" onclick='editPack(${JSON.stringify(p)})'>Edit</button>
+            <button class="btn btn-small btn-danger" onclick="deletePack(${p.id})">Delete</button>
+          </td>
+        </tr>`).join('')}
       </tbody>
     </table></div>
     <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPack(null)">+ Add Pack</button>`;
@@ -836,19 +863,19 @@ async function loadAdminEdits() {
   const res = await apiAdmin('admin_edits');
   editsList = res.edits || [];
   document.getElementById('adminContent').innerHTML = `
-    <h3>All Edits (${editsList.length}) <span style="font-size:0.8rem;color:#888;">Click card to open viewer • Use ← → keys to navigate</span></h3>
+    <h3>All Edits (${editsList.length}) <span style="font-size:0.8rem;color:#888;">Click any image to open viewer</span></h3>
     <div class="session-grid">
       ${editsList.map((e, idx) => `
-        <div class="session-card" onclick="openViewer(${idx})">
-          <button class="del-btn" onclick="event.stopPropagation(); deleteEdit(${e.id})">🗑 Delete</button>
+        <div class="session-card">
+          <button class="del-btn" onclick="deleteEdit(${e.id})">🗑 Delete</button>
           <div class="session-images">
             <div>
               <div class="session-label">Input</div>
-              ${e.input_url ? `<img src="${e.input_url}">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
+              ${e.input_url ? `<img src="${e.input_url}" onclick="openGalleryAt(${idx}, 'input')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
             </div>
             <div>
               <div class="session-label">Output</div>
-              ${e.output_url ? `<img src="${e.output_url}">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
+              ${e.output_url ? `<img src="${e.output_url}" onclick="openGalleryAt(${idx}, 'output')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
             </div>
           </div>
           <div class="session-meta"><strong>${escapeHtml(e.email || 'unknown')}</strong></div>
@@ -867,156 +894,289 @@ async function deleteEdit(id) {
 }
 
 // =========================================================
-// FULL-SCREEN IMAGE VIEWER
+// GALLERY VIEWER (admin edits + user result)
 // =========================================================
-function openViewer(index) {
-  currentEditIndex = index;
-  viewerImageMode = 'input';
+
+// Build flat gallery items from editsList (input, output, input, output, ...)
+function buildGalleryItems() {
+  const items = [];
+  editsList.forEach(e => {
+    if (e.input_url) {
+      items.push({
+        url: e.input_url,
+        label: 'Input',
+        email: e.email || 'unknown',
+        prompt: e.prompt || '',
+        meta: `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`
+      });
+    }
+    if (e.output_url) {
+      items.push({
+        url: e.output_url,
+        label: 'Output',
+        email: e.email || 'unknown',
+        prompt: e.prompt || '',
+        meta: `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`
+      });
+    }
+  });
+  return items;
+}
+
+function openGalleryAt(editIdx, which) {
+  viewerItems = buildGalleryItems();
+  // Find flat index: count inputs+outputs before editIdx
+  let flatIdx = 0;
+  for (let i = 0; i < editIdx; i++) {
+    if (editsList[i].input_url) flatIdx++;
+    if (editsList[i].output_url) flatIdx++;
+  }
+  // Adjust for which
+  const target = editsList[editIdx];
+  if (which === 'input' && target.input_url) {
+    // already at input
+  } else if (which === 'output') {
+    if (target.input_url) flatIdx++;
+  }
+  viewerIndex = flatIdx;
+  openViewer();
+}
+
+function openResultViewer() {
+  if (!resultImageData) return;
+  viewerItems = [{
+    url: resultImageData,
+    label: 'Result',
+    email: '',
+    prompt: '',
+    meta: ''
+  }];
+  viewerIndex = 0;
+  openViewer();
+}
+
+function openViewer() {
   document.getElementById('viewer').classList.add('active');
-  renderViewer();
+  loadViewerImage();
 }
 
 function closeViewer() {
   document.getElementById('viewer').classList.remove('active');
 }
 
-function viewerSetImage(mode) {
-  viewerImageMode = mode;
-  document.getElementById('viewerBtnInput').classList.toggle('active', mode === 'input');
-  document.getElementById('viewerBtnOutput').classList.toggle('active', mode === 'output');
-  renderViewer();
-}
+function loadViewerImage() {
+  const item = viewerItems[viewerIndex];
+  if (!item) return;
+  const img = document.getElementById('viewerImg');
+  const info = document.getElementById('viewerInfo');
+  const promptEl = document.getElementById('viewerPrompt');
+  const metaEl = document.getElementById('viewerMeta');
+  const footer = document.getElementById('viewerFooter');
 
-function renderViewer() {
-  const e = editsList[currentEditIndex];
-  if (!e) return;
-  const imgUrl = viewerImageMode === 'input' ? e.input_url : e.output_url;
-  document.getElementById('viewerImg').src = imgUrl || '';
-  document.getElementById('viewerInfo').textContent = `${currentEditIndex + 1} / ${editsList.length}  ·  ${e.email || ''}  ·  ${viewerImageMode.toUpperCase()}`;
-  document.getElementById('viewerPrompt').textContent = e.prompt || '';
-  document.getElementById('viewerMeta').textContent = `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`;
-  document.getElementById('viewerPrev').disabled = currentEditIndex === 0;
-  document.getElementById('viewerNext').disabled = currentEditIndex === editsList.length - 1;
-  resetViewerTransform();
+  const infoParts = [`${viewerIndex + 1} / ${viewerItems.length}`];
+  if (item.label) infoParts.push(item.label);
+  if (item.email) infoParts.push(item.email);
+  info.textContent = infoParts.join('  ·  ');
+
+  if (item.prompt) { promptEl.textContent = item.prompt; promptEl.style.display = 'block'; }
+  else promptEl.style.display = 'none';
+
+  metaEl.textContent = item.meta || '';
+  footer.style.display = (item.prompt || item.meta) ? 'block' : 'none';
+
+  document.getElementById('viewerPrev').style.display = viewerItems.length > 1 ? 'flex' : 'none';
+  document.getElementById('viewerNext').style.display = viewerItems.length > 1 ? 'flex' : 'none';
+  document.getElementById('viewerPrev').disabled = viewerIndex === 0;
+  document.getElementById('viewerNext').disabled = viewerIndex === viewerItems.length - 1;
+
+  // Load image and set up fit
+  img.onload = () => {
+    vImgSize = { w: img.naturalWidth, h: img.naturalHeight };
+    computeFitAndReset();
+  };
+  img.src = item.url;
+  if (img.complete && img.naturalWidth) {
+    vImgSize = { w: img.naturalWidth, h: img.naturalHeight };
+    computeFitAndReset();
+  }
 }
 
 function viewerNav(delta) {
-  const newIdx = currentEditIndex + delta;
-  if (newIdx < 0 || newIdx >= editsList.length) return;
-  currentEditIndex = newIdx;
-  renderViewer();
+  const newIdx = viewerIndex + delta;
+  if (newIdx < 0 || newIdx >= viewerItems.length) return;
+  viewerIndex = newIdx;
+  loadViewerImage();
+}
+
+// =========================================================
+// FREE ZOOM & PAN
+// =========================================================
+
+function measureBody() {
+  const body = document.getElementById('viewerBody');
+  const r = body.getBoundingClientRect();
+  vBodySize = { w: r.width, h: r.height };
+}
+
+function computeFitAndReset() {
+  measureBody();
+  const iw = vImgSize.w, ih = vImgSize.h;
+  const bw = vBodySize.w, bh = vBodySize.h;
+  if (!iw || !ih || !bw || !bh) return;
+  // Fit: scale so image fills viewport without cropping
+  vNaturalFit = Math.min(bw / iw, bh / ih);
+  resetViewerTransform();
 }
 
 function resetViewerTransform() {
-  viewerZoom = 1;
-  viewerPanX = 0;
-  viewerPanY = 0;
+  measureBody();
+  vZoom = 1;
+  // Center the image
+  const scaledW = vImgSize.w * vNaturalFit * vZoom;
+  const scaledH = vImgSize.h * vNaturalFit * vZoom;
+  vTx = (vBodySize.w - scaledW) / 2;
+  vTy = (vBodySize.h - scaledH) / 2;
   applyViewerTransform();
 }
 
 function applyViewerTransform() {
   const img = document.getElementById('viewerImg');
   if (!img) return;
-  img.style.transform = `translate(${viewerPanX}px, ${viewerPanY}px) scale(${viewerZoom})`;
-  img.style.transformOrigin = 'center center';
-  img.style.transition = viewerIsDragging ? 'none' : 'transform 0.2s';
+  const scale = vNaturalFit * vZoom;
+  img.style.width = vImgSize.w + 'px';
+  img.style.height = vImgSize.h + 'px';
+  img.style.transform = `translate(${vTx}px, ${vTy}px) scale(${scale})`;
+}
+
+function zoomAt(clientX, clientY, factor) {
+  measureBody();
+  const bodyRect = document.getElementById('viewerBody').getBoundingClientRect();
+  const px = clientX - bodyRect.left;
+  const py = clientY - bodyRect.top;
+  const newZoom = Math.max(0.5, Math.min(20, vZoom * factor));
+  const actualFactor = newZoom / vZoom;
+  vTx = px - (px - vTx) * actualFactor;
+  vTy = py - (py - vTy) * actualFactor;
+  vZoom = newZoom;
+  applyViewerTransform();
 }
 
 function setupViewerGestures() {
   const body = document.getElementById('viewerBody');
-  const img = document.getElementById('viewerImg');
-  if (!body || !img) return;
+  if (!body) return;
 
-  // Wheel zoom (desktop)
+  // WHEEL zoom
   body.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const delta = e.deltaY < 0 ? 1.15 : 0.87;
-    viewerZoom = Math.max(0.5, Math.min(8, viewerZoom * delta));
-    applyViewerTransform();
+    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    zoomAt(e.clientX, e.clientY, factor);
   }, { passive: false });
 
   // Double click reset
-  img.addEventListener('dblclick', () => {
-    if (viewerZoom > 1) resetViewerTransform();
-    else { viewerZoom = 2.5; applyViewerTransform(); }
+  body.addEventListener('dblclick', (e) => {
+    if (vZoom > 1.05) resetViewerTransform();
+    else zoomAt(e.clientX, e.clientY, 2.5);
   });
 
-  // Mouse drag pan
-  body.addEventListener('mousedown', (e) => {
-    if (viewerZoom <= 1) return;
-    viewerIsDragging = true;
-    viewerLastMousePos = { x: e.clientX, y: e.clientY };
+  // POINTER events (unified mouse + touch)
+  body.addEventListener('pointerdown', onPointerDown);
+  body.addEventListener('pointermove', onPointerMove);
+  body.addEventListener('pointerup', onPointerUp);
+  body.addEventListener('pointercancel', onPointerUp);
+  body.addEventListener('pointerleave', onPointerUp);
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('viewer').classList.contains('active')) computeFitAndReset();
   });
-  window.addEventListener('mousemove', (e) => {
-    if (!viewerIsDragging || !viewerLastMousePos) return;
-    viewerPanX += e.clientX - viewerLastMousePos.x;
-    viewerPanY += e.clientY - viewerLastMousePos.y;
-    viewerLastMousePos = { x: e.clientX, y: e.clientY };
+}
+
+function onPointerDown(e) {
+  const body = document.getElementById('viewerBody');
+  body.setPointerCapture(e.pointerId);
+  vPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (vPointers.size === 1) {
+    vIsDragging = true;
+    vLastPtr = { x: e.clientX, y: e.clientY };
+    vLastTouchX = e.clientX;  // for swipe detection
+  } else if (vPointers.size === 2) {
+    // Pinch start
+    const pts = [...vPointers.values()];
+    vPinchStart = {
+      dist: distance(pts[0], pts[1]),
+      cx: (pts[0].x + pts[1].x) / 2,
+      cy: (pts[0].y + pts[1].y) / 2,
+      zoom: vZoom
+    };
+    vIsDragging = false;
+    vLastTouchX = null;  // cancel swipe
+  }
+}
+
+function onPointerMove(e) {
+  if (!vPointers.has(e.pointerId)) return;
+  vPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (vPointers.size === 2 && vPinchStart) {
+    // Pinch zoom
+    const pts = [...vPointers.values()];
+    const newDist = distance(pts[0], pts[1]);
+    const scale = newDist / vPinchStart.dist;
+    const newZoom = Math.max(0.5, Math.min(20, vPinchStart.zoom * scale));
+
+    // Zoom around pinch center
+    const cx = (pts[0].x + pts[1].x) / 2;
+    const cy = (pts[0].y + pts[1].y) / 2;
+    const bodyRect = document.getElementById('viewerBody').getBoundingClientRect();
+    const px = cx - bodyRect.left;
+    const py = cy - bodyRect.top;
+
+    const actualFactor = newZoom / vZoom;
+    vTx = px - (px - vTx) * actualFactor;
+    vTy = py - (py - vTy) * actualFactor;
+    vZoom = newZoom;
     applyViewerTransform();
-  });
-  window.addEventListener('mouseup', () => {
-    viewerIsDragging = false;
-    viewerLastMousePos = null;
-  });
-
-  // Touch gestures (pinch zoom, pan, swipe)
-  let touchStartX = null;
-  body.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1 && viewerZoom <= 1) {
-      touchStartX = e.touches[0].clientX;
-    } else if (e.touches.length === 2) {
-      viewerLastTouches = getTouchInfo(e.touches);
-    } else if (e.touches.length === 1 && viewerZoom > 1) {
-      viewerIsDragging = true;
-      viewerLastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-  }, { passive: true });
-
-  body.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 2 && viewerLastTouches) {
-      e.preventDefault();
-      const cur = getTouchInfo(e.touches);
-      const scale = cur.dist / viewerLastTouches.dist;
-      viewerZoom = Math.max(0.5, Math.min(8, viewerZoom * scale));
-      viewerLastTouches = cur;
-      applyViewerTransform();
-    } else if (e.touches.length === 1 && viewerIsDragging && viewerLastMousePos) {
-      e.preventDefault();
-      viewerPanX += e.touches[0].clientX - viewerLastMousePos.x;
-      viewerPanY += e.touches[0].clientY - viewerLastMousePos.y;
-      viewerLastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      applyViewerTransform();
-    }
-  }, { passive: false });
-
-  body.addEventListener('touchend', (e) => {
-    if (touchStartX !== null && e.changedTouches.length === 1 && viewerZoom <= 1) {
-      const dx = e.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(dx) > 60) {
-        viewerNav(dx > 0 ? -1 : 1);
-      }
-    }
-    touchStartX = null;
-    viewerLastTouches = null;
-    viewerIsDragging = false;
-    viewerLastMousePos = null;
-  });
+  } else if (vPointers.size === 1 && vIsDragging && vLastPtr) {
+    const dx = e.clientX - vLastPtr.x;
+    const dy = e.clientY - vLastPtr.y;
+    vTx += dx;
+    vTy += dy;
+    vLastPtr = { x: e.clientX, y: e.clientY };
+    applyViewerTransform();
+  }
 }
 
-function getTouchInfo(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return { dist: Math.hypot(dx, dy) };
+function onPointerUp(e) {
+  if (!vPointers.has(e.pointerId)) return;
+
+  // Swipe detection (single touch, no zoom)
+  if (vPointers.size === 1 && vZoom <= 1.05 && vLastTouchX !== null) {
+    const dx = e.clientX - vLastTouchX;
+    if (Math.abs(dx) > 60) {
+      viewerNav(dx > 0 ? -1 : 1);
+    }
+  }
+
+  vPointers.delete(e.pointerId);
+  if (vPointers.size < 2) vPinchStart = null;
+  if (vPointers.size === 0) {
+    vIsDragging = false;
+    vLastPtr = null;
+    vLastTouchX = null;
+  }
 }
 
+function distance(p1, p2) {
+  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+// Keyboard
 document.addEventListener('keydown', (e) => {
-  const active = document.getElementById('viewer').classList.contains('active');
-  if (!active) return;
+  if (!document.getElementById('viewer').classList.contains('active')) return;
   if (e.key === 'ArrowLeft') viewerNav(-1);
   else if (e.key === 'ArrowRight') viewerNav(1);
   else if (e.key === 'Escape') closeViewer();
-  else if (e.key === 'i' || e.key === 'I') viewerSetImage('input');
-  else if (e.key === 'o' || e.key === 'O') viewerSetImage('output');
+  else if (e.key === '0') resetViewerTransform();
 });
 
 async function loadAdminTransactions() {
@@ -1028,14 +1188,13 @@ async function loadAdminTransactions() {
     <table>
       <thead><tr><th>User</th><th>Amount</th><th>Coins</th><th>Status</th><th>Time</th></tr></thead>
       <tbody>
-        ${txns.map(t => `
-          <tr>
-            <td>${escapeHtml(t.email || 'unknown')}</td>
-            <td>₹${t.amount_paise / 100}</td>
-            <td>${t.coins_added}</td>
-            <td>${t.status}</td>
-            <td>${new Date(t.created_at).toLocaleString()}</td>
-          </tr>`).join('')}
+        ${txns.map(t => `<tr>
+          <td>${escapeHtml(t.email || 'unknown')}</td>
+          <td>₹${t.amount_paise / 100}</td>
+          <td>${t.coins_added}</td>
+          <td>${t.status}</td>
+          <td>${new Date(t.created_at).toLocaleString()}</td>
+        </tr>`).join('')}
       </tbody>
     </table></div>`;
 }
