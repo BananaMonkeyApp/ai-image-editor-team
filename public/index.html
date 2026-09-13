@@ -44,15 +44,15 @@
   .balance-badge { background: linear-gradient(90deg, #f80, #fa0); color: black; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.95rem; }
 
   .notes-banner { background: linear-gradient(90deg, #1a3a1a, #143314); border: 1px solid #2a5a2a; padding: 12px 16px; border-radius: 10px; margin-bottom: 15px; color: #cfc; font-size: 0.9rem; white-space: pre-wrap; line-height: 1.4; }
-  .notes-banner strong { color: #6f6; }
 
   .upload-area { border: 2px dashed #444; border-radius: 10px; padding: 30px 20px; text-align: center; cursor: pointer; }
   .upload-area:hover { border-color: #06f; }
   .upload-area input { display: none; }
   .preview { max-width: 100%; max-height: 300px; border-radius: 8px; margin: 12px auto; display: block; }
+  .compressing { text-align: center; color: #888; font-size: 0.85rem; margin-top: 8px; }
 
   .preset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
-  .preset-btn { padding: 12px; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; font-size: 0.85rem; position: relative; }
+  .preset-btn { padding: 12px; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
   .preset-btn:hover { background: #06f; border-color: #06f; }
   .preset-btn.selected { background: linear-gradient(90deg, #06f, #a0f); border-color: #f0f; }
   .preset-cost { display: block; font-size: 0.7rem; color: #fa0; margin-top: 4px; font-weight: 700; }
@@ -93,28 +93,40 @@
   .modal.active { display: flex; }
   .modal-content { background: #1a1a1a; padding: 24px; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-content h3 { margin-bottom: 15px; }
-  .modal img { max-width: 100%; }
 
   .result-img { max-width: 100%; max-height: 500px; border-radius: 8px; margin: 12px auto; display: block; }
   .logout-btn { background: #333; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
 
   .session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; cursor: pointer; }
+  .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; cursor: pointer; position: relative; }
   .session-card:hover { border-color: #06f; }
+  .session-card .del-btn { position: absolute; top: 6px; right: 6px; background: rgba(160,0,0,0.9); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; z-index: 2; }
   .session-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
   .session-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; }
   .session-label { font-size: 0.7rem; color: #888; }
   .session-prompt { font-size: 0.8rem; color: #ddd; background: #0f0f0f; padding: 6px; border-radius: 6px; margin: 4px 0; max-height: 60px; overflow-y: auto; }
   .session-meta { font-size: 0.7rem; color: #888; }
 
-  /* Swipeable edit viewer */
-  .edit-viewer { position: relative; background: #0a0a0a; }
-  .edit-viewer-images { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-  .edit-viewer-images img { width: 100%; max-height: 45vh; object-fit: contain; border-radius: 8px; background: #000; }
-  .edit-viewer-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
-  .edit-viewer-nav button { background: #333; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-  .edit-viewer-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
-  .edit-viewer-info { text-align: center; font-size: 0.85rem; color: #aaa; }
+  /* Full-screen image viewer */
+  .viewer-overlay { position: fixed; inset: 0; background: #000; z-index: 200; display: none; flex-direction: column; }
+  .viewer-overlay.active { display: flex; }
+  .viewer-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); border-bottom: 1px solid #222; color: #fff; }
+  .viewer-header .info { font-size: 0.85rem; color: #aaa; }
+  .viewer-header button { background: #333; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+  .viewer-body { flex: 1; position: relative; overflow: hidden; touch-action: none; }
+  .viewer-image { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .viewer-image img { max-width: 100%; max-height: 100%; user-select: none; -webkit-user-drag: none; }
+  .viewer-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; width: 50px; height: 80px; font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+  .viewer-arrow:hover { background: rgba(255,255,255,0.35); }
+  .viewer-arrow.left { left: 10px; }
+  .viewer-arrow.right { right: 10px; }
+  .viewer-arrow:disabled { opacity: 0.2; cursor: not-allowed; }
+  .viewer-footer { padding: 12px; background: rgba(0,0,0,0.85); border-top: 1px solid #222; color: #ddd; max-height: 30vh; overflow-y: auto; }
+  .viewer-footer .prompt-line { font-size: 0.9rem; color: #ddd; background: #1a1a1a; padding: 8px; border-radius: 6px; margin: 6px 0; }
+  .viewer-footer .meta-line { font-size: 0.75rem; color: #888; }
+  .viewer-toggle { display: flex; gap: 4px; margin-top: 8px; }
+  .viewer-toggle button { flex: 1; background: #222; border: 1px solid #333; color: #aaa; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+  .viewer-toggle button.active { background: #06f; color: white; border-color: #06f; }
 
   label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: #aaa; }
   .form-row { margin-bottom: 10px; }
@@ -144,9 +156,7 @@
   <!-- USER DASHBOARD -->
   <div id="userView" class="view">
     <div class="topbar">
-      <div class="user-info">
-        <span id="userEmail" style="font-size: 0.9rem; color: #aaa;"></span>
-      </div>
+      <div class="user-info"><span id="userEmail" style="font-size: 0.9rem; color: #aaa;"></span></div>
       <div style="display: flex; align-items: center; gap: 10px;">
         <span class="balance-badge">🪙 <span id="userBalance">0</span></span>
         <button class="btn btn-small btn-secondary" onclick="showBuyCoins()">+ Add Coins</button>
@@ -163,6 +173,7 @@
         <p>📤 Click to select image</p>
       </div>
       <img id="preview" class="preview" style="display:none">
+      <div id="compressInfo" class="compressing" style="display:none;"></div>
     </div>
 
     <div class="card">
@@ -245,41 +256,32 @@
     </div>
   </div>
 
-  <!-- IMAGE MODAL -->
-  <div class="modal" id="imgModal" onclick="closeModal('imgModal')">
-    <div class="modal-content" style="max-width: 95%; padding: 0; background: transparent;">
-      <img id="modalImage" style="width: 100%; border-radius: 12px;">
-    </div>
-  </div>
-
-  <!-- EDIT VIEWER MODAL (swipeable) -->
-  <div class="modal" id="editViewerModal" onclick="if(event.target===this) closeModal('editViewerModal')">
-    <div class="modal-content edit-viewer" style="max-width: 900px;">
-      <div class="edit-viewer-images">
-        <div>
-          <div class="session-label">Input</div>
-          <img id="viewerInput" onclick="showImage(this.src)">
-        </div>
-        <div>
-          <div class="session-label">Output</div>
-          <img id="viewerOutput" onclick="showImage(this.src)">
-        </div>
-      </div>
-      <div class="session-meta" style="margin-bottom: 8px;"><strong id="viewerUser"></strong></div>
-      <div class="session-prompt" id="viewerPrompt"></div>
-      <div class="session-meta" id="viewerMeta"></div>
-      <div class="edit-viewer-nav">
-        <button id="viewerPrev" onclick="viewerNav(-1)">← Previous</button>
-        <div class="edit-viewer-info" id="viewerInfo"></div>
-        <button id="viewerNext" onclick="viewerNav(1)">Next →</button>
-      </div>
-      <button class="btn btn-secondary btn-full" style="margin-top: 15px;" onclick="closeModal('editViewerModal')">Close</button>
-    </div>
-  </div>
-
   <!-- GENERIC MODAL -->
   <div class="modal" id="genericModal" onclick="if(event.target===this) closeModal('genericModal')">
     <div class="modal-content" id="genericModalContent"></div>
+  </div>
+
+  <!-- FULL-SCREEN IMAGE VIEWER -->
+  <div class="viewer-overlay" id="viewer">
+    <div class="viewer-header">
+      <div class="info" id="viewerInfo"></div>
+      <button onclick="closeViewer()">✕ Close</button>
+    </div>
+    <div class="viewer-body" id="viewerBody">
+      <button class="viewer-arrow left" id="viewerPrev" onclick="viewerNav(-1)">‹</button>
+      <div class="viewer-image">
+        <img id="viewerImg" alt="">
+      </div>
+      <button class="viewer-arrow right" id="viewerNext" onclick="viewerNav(1)">›</button>
+    </div>
+    <div class="viewer-footer">
+      <div class="viewer-toggle">
+        <button id="viewerBtnInput" class="active" onclick="viewerSetImage('input')">Input</button>
+        <button id="viewerBtnOutput" onclick="viewerSetImage('output')">Output</button>
+      </div>
+      <div class="prompt-line" id="viewerPrompt"></div>
+      <div class="meta-line" id="viewerMeta"></div>
+    </div>
   </div>
 </div>
 
@@ -294,12 +296,21 @@ let resultImageData = null;
 let authMode = 'login';
 let editsList = [];
 let currentEditIndex = 0;
+let viewerImageMode = 'input';
+
+// Zoom & pan state for viewer
+let viewerZoom = 1;
+let viewerPanX = 0, viewerPanY = 0;
+let viewerLastTouches = null;
+let viewerLastMousePos = null;
+let viewerIsDragging = false;
 
 window.addEventListener('DOMContentLoaded', () => {
   currentToken = localStorage.getItem('token');
   loadConfig().then(() => {
     if (currentToken) fetchMe();
   });
+  setupViewerGestures();
 });
 
 async function loadConfig() {
@@ -309,11 +320,8 @@ async function loadConfig() {
     renderPresets();
     renderPacks();
     renderNotes();
-    // Set default LoRA
     const loraSelect = document.getElementById('loraSelect');
-    if (loraSelect && config.default_lora) {
-      loraSelect.value = config.default_lora;
-    }
+    if (loraSelect && config.default_lora) loraSelect.value = config.default_lora;
   } catch (e) { console.error('Config load failed', e); }
 }
 
@@ -342,9 +350,7 @@ async function doAuth() {
   const password = document.getElementById('authPassword').value;
   const errBox = document.getElementById('authError');
   errBox.style.display = 'none';
-
   if (!email || !password) return showErr(errBox, 'Enter email and password');
-
   try {
     const res = await fetch(`/api/main?action=${authMode}`, {
       method: 'POST',
@@ -353,7 +359,6 @@ async function doAuth() {
     });
     const data = await parseJsonSafe(res);
     if (!res.ok || data.error) throw new Error(data.error || 'Failed');
-
     currentToken = data.token;
     currentUser = data.user;
     localStorage.setItem('token', currentToken);
@@ -393,27 +398,20 @@ function resetUIState() {
   resultImageData = null;
   selectedPresetId = null;
   selectedIsCustom = false;
-
   const preview = document.getElementById('preview');
   if (preview) { preview.src = ''; preview.style.display = 'none'; }
-
   const fileInput = document.getElementById('fileInput');
   if (fileInput) fileInput.value = '';
-
   const resultCard = document.getElementById('resultCard');
   if (resultCard) resultCard.style.display = 'none';
-
   const resultImg = document.getElementById('resultImg');
   if (resultImg) resultImg.src = '';
-
   const customPrompt = document.getElementById('customPrompt');
   if (customPrompt) customPrompt.value = '';
-
-  ['editError', 'editSuccess', 'editStatus', 'customPromptBox'].forEach(id => {
+  ['editError', 'editSuccess', 'editStatus', 'customPromptBox', 'compressInfo'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
 }
 
@@ -435,17 +433,64 @@ function hideAll() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 }
 
-function handleFileSelect(event) {
+// =========================================================
+// IMAGE COMPRESSION (crucial fix for payload size)
+// =========================================================
+async function compressImage(file, maxDim = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        // Resize if larger than maxDim
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        // Output JPEG for max compression
+        canvas.toBlob((blob) => {
+          const r2 = new FileReader();
+          r2.onload = (ev) => resolve({ dataUrl: ev.target.result, sizeKB: Math.round(blob.size / 1024), width, height });
+          r2.onerror = reject;
+          r2.readAsDataURL(blob);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    selectedImageBase64 = e.target.result;
+  const info = document.getElementById('compressInfo');
+  info.style.display = 'block';
+  info.textContent = '⏳ Preparing image...';
+  try {
+    const compressed = await compressImage(file);
+    selectedImageBase64 = compressed.dataUrl;
     const preview = document.getElementById('preview');
     preview.src = selectedImageBase64;
     preview.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+    info.textContent = `✅ Ready: ${compressed.width}×${compressed.height}, ${compressed.sizeKB} KB`;
+  } catch (err) {
+    info.textContent = '❌ Failed to load image';
+    console.error(err);
+  }
 }
 
 function renderPresets() {
@@ -466,8 +511,8 @@ function renderPresets() {
     `;
   }
   grid.innerHTML = html;
-  const customCostSpan = document.getElementById('customCostShow');
-  if (customCostSpan) customCostSpan.textContent = config.custom_prompt_cost;
+  const c = document.getElementById('customCostShow');
+  if (c) c.textContent = config.custom_prompt_cost;
 }
 
 function selectPreset(id) {
@@ -495,13 +540,11 @@ async function submitEdit() {
   const status = document.getElementById('editStatus');
   const resultCard = document.getElementById('resultCard');
   const btn = document.getElementById('editBtn');
-
   errBox.style.display = 'none';
   successBox.style.display = 'none';
   resultCard.style.display = 'none';
 
   if (!selectedImageBase64) return showErr(errBox, 'Select an image first');
-
   let prompt, is_custom = false, preset_id = null;
   if (selectedIsCustom) {
     prompt = document.getElementById('customPrompt').value.trim();
@@ -515,12 +558,10 @@ async function submitEdit() {
   } else {
     return showErr(errBox, 'Choose an edit');
   }
-
   const lora = document.getElementById('loraSelect').value;
 
   btn.disabled = true;
   status.style.display = 'block';
-
   try {
     const res = await fetch('/api/main?action=edit', {
       method: 'POST',
@@ -528,7 +569,6 @@ async function submitEdit() {
       body: JSON.stringify({ image: selectedImageBase64, prompt, lora, preset_id, is_custom })
     });
     const data = await parseJsonSafe(res);
-
     if (!res.ok || data.error) {
       if (data.refunded) {
         showErr(errBox, `${data.message || data.error}. Refunded ${data.refunded} coins.`);
@@ -539,7 +579,6 @@ async function submitEdit() {
       }
       return;
     }
-
     resultImageData = data.image;
     document.getElementById('resultImg').src = data.image;
     resultCard.style.display = 'block';
@@ -571,23 +610,14 @@ function downloadResult() {
 
 function showErr(box, msg) { box.textContent = msg; box.style.display = 'block'; }
 
-function showBuyCoins() {
-  renderPacks();
-  renderPricingChart();
-  document.getElementById('buyModal').classList.add('active');
-}
+function showBuyCoins() { renderPacks(); renderPricingChart(); document.getElementById('buyModal').classList.add('active'); }
 
 function renderPricingChart() {
   const el = document.getElementById('pricingChart');
   if (!el) return;
   let rows = config.presets.map(p => `<tr><td>${escapeHtml(p.name)}</td><td>${p.cost} 🪙</td></tr>`).join('');
-  if (config.custom_prompt_enabled) {
-    rows += `<tr><td>✍️ Custom Prompt</td><td>${config.custom_prompt_cost} 🪙</td></tr>`;
-  }
-  el.innerHTML = `
-    <div class="pricing-chart-title">💡 Current Edit Costs:</div>
-    <table>${rows}</table>
-  `;
+  if (config.custom_prompt_enabled) rows += `<tr><td>✍️ Custom Prompt</td><td>${config.custom_prompt_cost} 🪙</td></tr>`;
+  el.innerHTML = `<div class="pricing-chart-title">💡 Current Edit Costs:</div><table>${rows}</table>`;
 }
 
 function renderPacks() {
@@ -610,15 +640,10 @@ async function buyPack(packId) {
     });
     const data = await parseJsonSafe(res);
     if (!res.ok || data.error) throw new Error(data.error || 'Failed');
-
     closeModal('buyModal');
-
     const options = {
-      key: data.razorpay_key_id,
-      amount: data.amount,
-      currency: data.currency,
-      name: 'AI Image Editor',
-      description: `${data.coins} coins`,
+      key: data.razorpay_key_id, amount: data.amount, currency: data.currency,
+      name: 'AI Image Editor', description: `${data.coins} coins`,
       order_id: data.order_id,
       handler: async function(response) { await verifyPayment(response); },
       prefill: { email: currentUser.email },
@@ -626,9 +651,7 @@ async function buyPack(packId) {
     };
     const rzp = new Razorpay(options);
     rzp.open();
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  } catch (err) { alert('Error: ' + err.message); }
 }
 
 async function verifyPayment(response) {
@@ -643,9 +666,7 @@ async function verifyPayment(response) {
     currentUser.balance = data.new_balance;
     document.getElementById('userBalance').textContent = currentUser.balance;
     alert(`✅ Success! Added ${data.coins_added} coins. Balance: ${data.new_balance}`);
-  } catch (err) {
-    alert('Payment verification error: ' + err.message);
-  }
+  } catch (err) { alert('Payment verification error: ' + err.message); }
 }
 
 function switchAdminTab(tab) {
@@ -676,11 +697,9 @@ async function loadAdminUsers() {
             <td>₹${u.total_spent}</td>
             <td>${new Date(u.created_at).toLocaleDateString()}</td>
             <td><button class="btn btn-small btn-secondary" onclick="promptAddCoins(${u.id}, '${escapeHtml(u.email)}')">+ Coins</button></td>
-          </tr>
-        `).join('')}
+          </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
+    </table></div>`;
 }
 
 async function promptAddCoins(userId, email) {
@@ -713,12 +732,10 @@ async function loadAdminPresets() {
               <button class="btn btn-small btn-secondary" onclick='editPreset(${JSON.stringify(p)})'>Edit</button>
               <button class="btn btn-small btn-danger" onclick="deletePreset(${p.id})">Delete</button>
             </td>
-          </tr>
-        `).join('')}
+          </tr>`).join('')}
       </tbody>
     </table></div>
-    <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPreset(null)">+ Add Preset</button>
-  `;
+    <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPreset(null)">+ Add Preset</button>`;
 }
 
 function editPreset(preset) {
@@ -732,8 +749,7 @@ function editPreset(preset) {
     <div style="display: flex; gap: 8px;">
       <button class="btn btn-primary" onclick="savePreset(${p.id || 'null'})">Save</button>
       <button class="btn btn-secondary" onclick="closeModal('genericModal')">Cancel</button>
-    </div>
-  `;
+    </div>`;
   document.getElementById('genericModal').classList.add('active');
 }
 
@@ -776,12 +792,10 @@ async function loadAdminPacks() {
               <button class="btn btn-small btn-secondary" onclick='editPack(${JSON.stringify(p)})'>Edit</button>
               <button class="btn btn-small btn-danger" onclick="deletePack(${p.id})">Delete</button>
             </td>
-          </tr>
-        `).join('')}
+          </tr>`).join('')}
       </tbody>
     </table></div>
-    <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPack(null)">+ Add Pack</button>
-  `;
+    <button class="btn btn-primary" style="margin-top: 15px;" onclick="editPack(null)">+ Add Pack</button>`;
 }
 
 function editPack(pack) {
@@ -794,8 +808,7 @@ function editPack(pack) {
     <div style="display: flex; gap: 8px;">
       <button class="btn btn-primary" onclick="savePack(${p.id || 'null'})">Save</button>
       <button class="btn btn-secondary" onclick="closeModal('genericModal')">Cancel</button>
-    </div>
-  `;
+    </div>`;
   document.getElementById('genericModal').classList.add('active');
 }
 
@@ -823,10 +836,11 @@ async function loadAdminEdits() {
   const res = await apiAdmin('admin_edits');
   editsList = res.edits || [];
   document.getElementById('adminContent').innerHTML = `
-    <h3>All Edits (${editsList.length}) <span style="font-size:0.8rem;color:#888;">Click any to open swipeable viewer</span></h3>
+    <h3>All Edits (${editsList.length}) <span style="font-size:0.8rem;color:#888;">Click card to open viewer • Use ← → keys to navigate</span></h3>
     <div class="session-grid">
       ${editsList.map((e, idx) => `
-        <div class="session-card" onclick="openEditViewer(${idx})">
+        <div class="session-card" onclick="openViewer(${idx})">
+          <button class="del-btn" onclick="event.stopPropagation(); deleteEdit(${e.id})">🗑 Delete</button>
           <div class="session-images">
             <div>
               <div class="session-label">Input</div>
@@ -842,42 +856,167 @@ async function loadAdminEdits() {
           <div class="session-meta">${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}</div>
         </div>
       `).join('')}
-    </div>
-  `;
+    </div>`;
 }
 
-function openEditViewer(index) {
+async function deleteEdit(id) {
+  if (!confirm('Delete this edit permanently? Images will be removed.')) return;
+  const res = await apiAdmin('admin_delete_edit', { id });
+  if (res.error) return alert('Error: ' + res.error);
+  loadAdminEdits();
+}
+
+// =========================================================
+// FULL-SCREEN IMAGE VIEWER
+// =========================================================
+function openViewer(index) {
   currentEditIndex = index;
-  renderEditViewer();
-  document.getElementById('editViewerModal').classList.add('active');
+  viewerImageMode = 'input';
+  document.getElementById('viewer').classList.add('active');
+  renderViewer();
 }
 
-function renderEditViewer() {
+function closeViewer() {
+  document.getElementById('viewer').classList.remove('active');
+}
+
+function viewerSetImage(mode) {
+  viewerImageMode = mode;
+  document.getElementById('viewerBtnInput').classList.toggle('active', mode === 'input');
+  document.getElementById('viewerBtnOutput').classList.toggle('active', mode === 'output');
+  renderViewer();
+}
+
+function renderViewer() {
   const e = editsList[currentEditIndex];
   if (!e) return;
-  document.getElementById('viewerInput').src = e.input_url || '';
-  document.getElementById('viewerOutput').src = e.output_url || '';
-  document.getElementById('viewerUser').textContent = e.email || 'unknown';
+  const imgUrl = viewerImageMode === 'input' ? e.input_url : e.output_url;
+  document.getElementById('viewerImg').src = imgUrl || '';
+  document.getElementById('viewerInfo').textContent = `${currentEditIndex + 1} / ${editsList.length}  ·  ${e.email || ''}  ·  ${viewerImageMode.toUpperCase()}`;
   document.getElementById('viewerPrompt').textContent = e.prompt || '';
   document.getElementById('viewerMeta').textContent = `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`;
-  document.getElementById('viewerInfo').textContent = `${currentEditIndex + 1} / ${editsList.length}`;
   document.getElementById('viewerPrev').disabled = currentEditIndex === 0;
   document.getElementById('viewerNext').disabled = currentEditIndex === editsList.length - 1;
+  resetViewerTransform();
 }
 
 function viewerNav(delta) {
   const newIdx = currentEditIndex + delta;
   if (newIdx < 0 || newIdx >= editsList.length) return;
   currentEditIndex = newIdx;
-  renderEditViewer();
+  renderViewer();
 }
 
-// Keyboard navigation for edit viewer
+function resetViewerTransform() {
+  viewerZoom = 1;
+  viewerPanX = 0;
+  viewerPanY = 0;
+  applyViewerTransform();
+}
+
+function applyViewerTransform() {
+  const img = document.getElementById('viewerImg');
+  if (!img) return;
+  img.style.transform = `translate(${viewerPanX}px, ${viewerPanY}px) scale(${viewerZoom})`;
+  img.style.transformOrigin = 'center center';
+  img.style.transition = viewerIsDragging ? 'none' : 'transform 0.2s';
+}
+
+function setupViewerGestures() {
+  const body = document.getElementById('viewerBody');
+  const img = document.getElementById('viewerImg');
+  if (!body || !img) return;
+
+  // Wheel zoom (desktop)
+  body.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1.15 : 0.87;
+    viewerZoom = Math.max(0.5, Math.min(8, viewerZoom * delta));
+    applyViewerTransform();
+  }, { passive: false });
+
+  // Double click reset
+  img.addEventListener('dblclick', () => {
+    if (viewerZoom > 1) resetViewerTransform();
+    else { viewerZoom = 2.5; applyViewerTransform(); }
+  });
+
+  // Mouse drag pan
+  body.addEventListener('mousedown', (e) => {
+    if (viewerZoom <= 1) return;
+    viewerIsDragging = true;
+    viewerLastMousePos = { x: e.clientX, y: e.clientY };
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!viewerIsDragging || !viewerLastMousePos) return;
+    viewerPanX += e.clientX - viewerLastMousePos.x;
+    viewerPanY += e.clientY - viewerLastMousePos.y;
+    viewerLastMousePos = { x: e.clientX, y: e.clientY };
+    applyViewerTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    viewerIsDragging = false;
+    viewerLastMousePos = null;
+  });
+
+  // Touch gestures (pinch zoom, pan, swipe)
+  let touchStartX = null;
+  body.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1 && viewerZoom <= 1) {
+      touchStartX = e.touches[0].clientX;
+    } else if (e.touches.length === 2) {
+      viewerLastTouches = getTouchInfo(e.touches);
+    } else if (e.touches.length === 1 && viewerZoom > 1) {
+      viewerIsDragging = true;
+      viewerLastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }, { passive: true });
+
+  body.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && viewerLastTouches) {
+      e.preventDefault();
+      const cur = getTouchInfo(e.touches);
+      const scale = cur.dist / viewerLastTouches.dist;
+      viewerZoom = Math.max(0.5, Math.min(8, viewerZoom * scale));
+      viewerLastTouches = cur;
+      applyViewerTransform();
+    } else if (e.touches.length === 1 && viewerIsDragging && viewerLastMousePos) {
+      e.preventDefault();
+      viewerPanX += e.touches[0].clientX - viewerLastMousePos.x;
+      viewerPanY += e.touches[0].clientY - viewerLastMousePos.y;
+      viewerLastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      applyViewerTransform();
+    }
+  }, { passive: false });
+
+  body.addEventListener('touchend', (e) => {
+    if (touchStartX !== null && e.changedTouches.length === 1 && viewerZoom <= 1) {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 60) {
+        viewerNav(dx > 0 ? -1 : 1);
+      }
+    }
+    touchStartX = null;
+    viewerLastTouches = null;
+    viewerIsDragging = false;
+    viewerLastMousePos = null;
+  });
+}
+
+function getTouchInfo(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return { dist: Math.hypot(dx, dy) };
+}
+
 document.addEventListener('keydown', (e) => {
-  if (!document.getElementById('editViewerModal').classList.contains('active')) return;
+  const active = document.getElementById('viewer').classList.contains('active');
+  if (!active) return;
   if (e.key === 'ArrowLeft') viewerNav(-1);
   else if (e.key === 'ArrowRight') viewerNav(1);
-  else if (e.key === 'Escape') closeModal('editViewerModal');
+  else if (e.key === 'Escape') closeViewer();
+  else if (e.key === 'i' || e.key === 'I') viewerSetImage('input');
+  else if (e.key === 'o' || e.key === 'O') viewerSetImage('output');
 });
 
 async function loadAdminTransactions() {
@@ -896,44 +1035,35 @@ async function loadAdminTransactions() {
             <td>${t.coins_added}</td>
             <td>${t.status}</td>
             <td>${new Date(t.created_at).toLocaleString()}</td>
-          </tr>
-        `).join('')}
+          </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
+    </table></div>`;
 }
 
 async function loadAdminSettings() {
   await loadConfig();
   const loras = ['Photo-to-Anime','Anime-V2','Multiple-Angles','Light-Migration','Upscaler','Style-Transfer','Manga-Tone','Anything2Real','Polaroid-Photo','Unblur-Anything','Hyper-Realistic-Portrait','Ultra-Realistic-Portrait','Pixar-Inspired-3D','Noir-Comic-Book','Any-light','Studio-DeLight','Cinematic-FlatLog','Midnight-Noir-Eyes-Spotlight','Fal-Multiple-Angles'];
-
   document.getElementById('adminContent').innerHTML = `
     <h3>General Settings</h3>
-
     <div class="form-row">
       <label>📢 Notes / Tips (shown to users above upload area)</label>
-      <textarea id="userNotesInput" style="min-height: 100px;" placeholder="e.g., New Anime style added! Try preset 3 for best results.">${escapeHtml(config.user_notes || '')}</textarea>
+      <textarea id="userNotesInput" style="min-height: 100px;">${escapeHtml(config.user_notes || '')}</textarea>
     </div>
-
     <div class="form-row">
-      <label>Default LoRA (shown when user opens the page)</label>
+      <label>Default LoRA</label>
       <select id="defaultLoraInput">
         ${loras.map(l => `<option value="${l}" ${config.default_lora === l ? 'selected' : ''}>${l}</option>`).join('')}
       </select>
     </div>
-
     <div class="checkbox-row">
       <input type="checkbox" id="customEnabled" ${config.custom_prompt_enabled ? 'checked' : ''}>
       <label for="customEnabled" style="margin: 0;">Enable Custom Prompt Button</label>
     </div>
-
     <div class="form-row">
       <label>Custom Prompt Cost (coins)</label>
       <input type="number" id="customCostInput" value="${config.custom_prompt_cost}">
     </div>
-
-    <button class="btn btn-success" onclick="saveAllSettings()">💾 Save Settings</button>
-  `;
+    <button class="btn btn-success" onclick="saveAllSettings()">💾 Save Settings</button>`;
 }
 
 async function saveAllSettings() {
@@ -958,14 +1088,7 @@ async function apiAdmin(action, body) {
   return await parseJsonSafe(res);
 }
 
-function showImage(url) {
-  document.getElementById('modalImage').src = url;
-  document.getElementById('imgModal').classList.add('active');
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function escapeHtml(s) {
   const div = document.createElement('div');
