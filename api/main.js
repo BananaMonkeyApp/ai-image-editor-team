@@ -103,6 +103,7 @@ export default async function handler(req, res) {
       case 'admin_delete_pack': return await handleAdminDeletePack(req, res);
       case 'admin_save_settings': return await handleAdminSaveSettings(req, res);
       case 'admin_delete_edit': return await handleAdminDeleteEdit(req, res);
+      case 'admin_delete_edits_batch': return await handleAdminDeleteEditsBatch(req, res);
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -262,6 +263,11 @@ async function handleEdit(req, res) {
   const editId = editRows[0].id;
   await logCoinChange(user.id, -cost, 'edit', `edit_${editId}`, balanceAfterDeduct);
 
+  // Mark if it's a custom prompt
+  if (is_custom) {
+    await sql`UPDATE edits SET lora = ${(lora || 'Photo-to-Anime') + '|CUSTOM'} WHERE id = ${editId}`;
+  }
+
   const shuffled = [...BACKEND_SERVERS].sort(() => Math.random() - 0.5);
   let successResult = null;
   let usedServer = null;
@@ -359,8 +365,21 @@ async function handleAdminAddCoins(req, res) {
 async function handleAdminEdits(req, res) {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const { rows } = await sql`SELECT e.*, u.email FROM edits e LEFT JOIN users u ON e.user_id = u.id ORDER BY e.created_at DESC LIMIT 200`;
-  return res.status(200).json({ edits: rows });
+
+  const limit = Math.min(parseInt(req.body?.limit || req.query?.limit || '20'), 100);
+  const offset = parseInt(req.body?.offset || req.query?.offset || '0');
+
+  const countRes = await sql`SELECT COUNT(*)::int AS total FROM edits`;
+  const total = countRes.rows[0].total;
+
+  const { rows } = await sql`
+    SELECT e.*, u.email
+    FROM edits e
+    LEFT JOIN users u ON e.user_id = u.id
+    ORDER BY e.created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  return res.status(200).json({ edits: rows, total, limit, offset });
 }
 
 async function handleAdminTransactions(req, res) {
@@ -444,7 +463,6 @@ async function handleAdminDeleteEdit(req, res) {
   const { id } = req.body || {};
   if (!id) return res.status(400).json({ error: "id required" });
 
-  // Get the edit to delete blob files
   const { rows } = await sql`SELECT input_url, output_url FROM edits WHERE id = ${id} LIMIT 1`;
   if (rows.length > 0) {
     const edit = rows[0];
@@ -453,12 +471,38 @@ async function handleAdminDeleteEdit(req, res) {
       if (edit.input_url) await del(edit.input_url, { token: blobToken });
       if (edit.output_url) await del(edit.output_url, { token: blobToken });
     } catch (e) {
-      console.error('[Delete] Blob delete failed (non-fatal):', e.message);
+      console.error('[Delete] Blob delete failed:', e.message);
     }
   }
 
   await sql`DELETE FROM edits WHERE id = ${id}`;
   return res.status(200).json({ success: true });
+}
+
+async function handleAdminDeleteEditsBatch(req, res) {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { ids } = req.body || {};
+  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "ids array required" });
+
+  const numericIds = ids.map(i => parseInt(i)).filter(i => !isNaN(i));
+  if (numericIds.length === 0) return res.status(400).json({ error: "No valid ids" });
+
+  // Fetch blob URLs for cleanup
+  const { rows } = await sql`SELECT input_url, output_url FROM edits WHERE id = ANY(${numericIds})`;
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  let deletedBlobs = 0;
+  for (const edit of rows) {
+    try {
+      if (edit.input_url) { await del(edit.input_url, { token: blobToken }); deletedBlobs++; }
+      if (edit.output_url) { await del(edit.output_url, { token: blobToken }); deletedBlobs++; }
+    } catch (e) {
+      console.error('[Batch Delete] Blob delete failed:', e.message);
+    }
+  }
+
+  await sql`DELETE FROM edits WHERE id = ANY(${numericIds})`;
+  return res.status(200).json({ success: true, deleted: numericIds.length, deletedBlobs });
 }
 
 export const config = {
