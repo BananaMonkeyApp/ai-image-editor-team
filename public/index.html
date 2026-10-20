@@ -101,15 +101,34 @@
 
   .logout-btn { background: #333; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
 
+  /* Admin edits section */
+  .edits-toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 10px; background: #0f0f0f; border-radius: 8px; margin-bottom: 12px;
+  }
+  .edits-toolbar .count { font-size: 0.9rem; color: #aaa; margin-right: auto; }
+  .edits-toolbar button { font-size: 0.85rem; padding: 6px 12px; }
+
   .session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
   .session-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; position: relative; }
-  .session-card:hover { border-color: #06f; }
+  .session-card.selected { border-color: #06f; background: #11193a; }
+  .session-card .select-check {
+    position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; cursor: pointer; z-index: 2;
+  }
   .session-card .del-btn { position: absolute; top: 6px; right: 6px; background: rgba(160,0,0,0.9); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; z-index: 2; }
-  .session-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .session-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 24px 0 8px; }
   .session-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; cursor: pointer; }
   .session-label { font-size: 0.7rem; color: #888; }
   .session-prompt { font-size: 0.8rem; color: #ddd; background: #0f0f0f; padding: 6px; border-radius: 6px; margin: 4px 0; max-height: 60px; overflow-y: auto; }
+  .session-prompt.custom { background: #2a1a3a; border: 1px solid #a0f; color: #fcf; }
   .session-meta { font-size: 0.7rem; color: #888; }
+  .badge-custom { display: inline-block; background: #a0f; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; margin-left: 4px; }
+  .badge-preset { display: inline-block; background: #06f; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; margin-left: 4px; }
+
+  .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 15px; }
+  .pagination button { background: #222; color: #ddd; border: 1px solid #333; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+  .pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .pagination .page-info { color: #aaa; font-size: 0.9rem; }
 
   /* FULL-SCREEN ZOOM VIEWER */
   .viewer-overlay {
@@ -151,9 +170,7 @@
     will-change: transform;
     transition: transform 0.15s ease-out;
   }
-  .viewer-canvas img.dragging {
-    transition: none;
-  }
+  .viewer-canvas img.dragging { transition: none; }
 
   .viewer-arrow {
     position: absolute; top: 50%; transform: translateY(-50%);
@@ -340,7 +357,13 @@ let selectedIsCustom = false;
 let selectedImageBase64 = null;
 let resultImageData = null;
 let authMode = 'login';
+
+// Admin edits state
 let editsList = [];
+let editsPage = 0;
+let editsLimit = 20;
+let editsTotal = 0;
+let selectedEditIds = new Set();
 
 let viewerItems = [];
 let viewerIndex = 0;
@@ -689,7 +712,7 @@ function switchAdminTab(tab) {
   if (tab === 'users') loadAdminUsers();
   else if (tab === 'presets') loadAdminPresets();
   else if (tab === 'packs') loadAdminPacks();
-  else if (tab === 'edits') loadAdminEdits();
+  else if (tab === 'edits') { editsPage = 0; selectedEditIds.clear(); loadAdminEdits(); }
   else if (tab === 'transactions') loadAdminTransactions();
   else if (tab === 'settings') loadAdminSettings();
 }
@@ -842,31 +865,107 @@ async function deletePack(id) {
   loadAdminPacks();
 }
 
+// =========================================================
+// ADMIN EDITS — paginated + batch delete + smart prompt display
+// =========================================================
 async function loadAdminEdits() {
-  const res = await apiAdmin('admin_edits');
+  const offset = editsPage * editsLimit;
+  const res = await apiAdmin('admin_edits', { limit: editsLimit, offset });
   editsList = res.edits || [];
-  document.getElementById('adminContent').innerHTML = `
-    <h3>All Edits (${editsList.length}) <span style="font-size:0.8rem;color:#888;">Click any image to open viewer</span></h3>
-    <div class="session-grid">
-      ${editsList.map((e, idx) => `
-        <div class="session-card">
-          <button class="del-btn" onclick="deleteEdit(${e.id})">🗑 Delete</button>
-          <div class="session-images">
-            <div>
-              <div class="session-label">Input</div>
-              ${e.input_url ? `<img src="${e.input_url}" onclick="openGalleryAt(${idx}, 'input')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
-            </div>
-            <div>
-              <div class="session-label">Output</div>
-              ${e.output_url ? `<img src="${e.output_url}" onclick="openGalleryAt(${idx}, 'output')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
-            </div>
+  editsTotal = res.total || 0;
+  renderAdminEdits();
+}
+
+function renderAdminEdits() {
+  const totalPages = Math.max(1, Math.ceil(editsTotal / editsLimit));
+  const start = editsPage * editsLimit + 1;
+  const end = Math.min(start + editsList.length - 1, editsTotal);
+
+  const toolbar = `
+    <div class="edits-toolbar">
+      <div class="count">Showing <strong>${start}–${end}</strong> of <strong>${editsTotal}</strong></div>
+      <button class="btn btn-small btn-secondary" onclick="selectAllOnPage()">Select All</button>
+      <button class="btn btn-small btn-secondary" onclick="clearSelection()">Clear</button>
+      <button class="btn btn-small btn-danger" onclick="batchDeleteSelected()">🗑 Delete Selected (<span id="selCount">${selectedEditIds.size}</span>)</button>
+    </div>
+  `;
+
+  const pagination = `
+    <div class="pagination">
+      <button onclick="editsPage=0; loadAdminEdits()" ${editsPage === 0 ? 'disabled' : ''}>« First</button>
+      <button onclick="editsPage--; loadAdminEdits()" ${editsPage === 0 ? 'disabled' : ''}>‹ Prev</button>
+      <span class="page-info">Page ${editsPage + 1} of ${totalPages}</span>
+      <button onclick="editsPage++; loadAdminEdits()" ${editsPage >= totalPages - 1 ? 'disabled' : ''}>Next ›</button>
+      <button onclick="editsPage=${totalPages - 1}; loadAdminEdits()" ${editsPage >= totalPages - 1 ? 'disabled' : ''}>Last »</button>
+    </div>
+  `;
+
+  const cards = editsList.map((e, idx) => {
+    const isCustom = (e.lora || '').includes('|CUSTOM');
+    const checked = selectedEditIds.has(e.id) ? 'checked' : '';
+    const selectedClass = selectedEditIds.has(e.id) ? 'selected' : '';
+    const promptClass = isCustom ? 'session-prompt custom' : 'session-prompt';
+    const badge = isCustom
+      ? '<span class="badge-custom">CUSTOM</span>'
+      : '<span class="badge-preset">PRESET</span>';
+
+    return `
+      <div class="session-card ${selectedClass}">
+        <input type="checkbox" class="select-check" ${checked} onchange="toggleSelect(${e.id})">
+        <button class="del-btn" onclick="deleteEdit(${e.id})">🗑</button>
+        <div class="session-images">
+          <div>
+            <div class="session-label">Input</div>
+            ${e.input_url ? `<img src="${e.input_url}" loading="lazy" onclick="openGalleryAt(${idx}, 'input')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
           </div>
-          <div class="session-meta"><strong>${escapeHtml(e.email || 'unknown')}</strong></div>
-          <div class="session-prompt">${escapeHtml((e.prompt||'').slice(0, 100))}</div>
-          <div class="session-meta">${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}</div>
+          <div>
+            <div class="session-label">Output</div>
+            ${e.output_url ? `<img src="${e.output_url}" loading="lazy" onclick="openGalleryAt(${idx}, 'output')">` : '<div style="color:#666;font-size:0.75rem;padding:10px;">No image</div>'}
+          </div>
         </div>
-      `).join('')}
-    </div>`;
+        <div class="session-meta"><strong>${escapeHtml(e.email || 'unknown')}</strong> ${badge}</div>
+        <div class="${promptClass}">${escapeHtml((e.prompt||'').slice(0, 200))}</div>
+        <div class="session-meta">${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('adminContent').innerHTML = `
+    <h3>All Edits</h3>
+    ${toolbar}
+    <div class="session-grid">${cards}</div>
+    ${pagination}
+  `;
+}
+
+function toggleSelect(id) {
+  if (selectedEditIds.has(id)) selectedEditIds.delete(id);
+  else selectedEditIds.add(id);
+  const span = document.getElementById('selCount');
+  if (span) span.textContent = selectedEditIds.size;
+  // Toggle visual
+  renderAdminEdits();
+}
+
+function selectAllOnPage() {
+  editsList.forEach(e => selectedEditIds.add(e.id));
+  renderAdminEdits();
+}
+
+function clearSelection() {
+  selectedEditIds.clear();
+  renderAdminEdits();
+}
+
+async function batchDeleteSelected() {
+  if (selectedEditIds.size === 0) return alert('Nothing selected');
+  if (!confirm(`Delete ${selectedEditIds.size} edit(s) permanently? Images will be removed.`)) return;
+  const ids = Array.from(selectedEditIds);
+  const res = await apiAdmin('admin_delete_edits_batch', { ids });
+  if (res.error) return alert('Error: ' + res.error);
+  alert(`✅ Deleted ${res.deleted} edits`);
+  selectedEditIds.clear();
+  loadAdminEdits();
 }
 
 async function deleteEdit(id) {
@@ -879,24 +978,8 @@ async function deleteEdit(id) {
 function buildGalleryItems() {
   const items = [];
   editsList.forEach(e => {
-    if (e.input_url) {
-      items.push({
-        url: e.input_url,
-        label: 'Input',
-        email: e.email || 'unknown',
-        prompt: e.prompt || '',
-        meta: `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`
-      });
-    }
-    if (e.output_url) {
-      items.push({
-        url: e.output_url,
-        label: 'Output',
-        email: e.email || 'unknown',
-        prompt: e.prompt || '',
-        meta: `${e.coins_spent} 🪙 · ${e.status} · ${e.lora || ''} · ${new Date(e.created_at).toLocaleString()}`
-      });
-    }
+    if (e.input_url) items.push({ url: e.input_url, label: 'Input', email: e.email || 'unknown', prompt: e.prompt || '', meta: `${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}` });
+    if (e.output_url) items.push({ url: e.output_url, label: 'Output', email: e.email || 'unknown', prompt: e.prompt || '', meta: `${e.coins_spent} 🪙 · ${e.status} · ${new Date(e.created_at).toLocaleString()}` });
   });
   return items;
 }
@@ -916,13 +999,7 @@ function openGalleryAt(editIdx, which) {
 
 function openResultViewer() {
   if (!resultImageData) return;
-  viewerItems = [{
-    url: resultImageData,
-    label: 'Result',
-    email: '',
-    prompt: '',
-    meta: ''
-  }];
+  viewerItems = [{ url: resultImageData, label: 'Result', email: '', prompt: '', meta: '' }];
   viewerIndex = 0;
   openViewer();
 }
@@ -932,9 +1009,7 @@ function openViewer() {
   loadViewerImage();
 }
 
-function closeViewer() {
-  document.getElementById('viewer').classList.remove('active');
-}
+function closeViewer() { document.getElementById('viewer').classList.remove('active'); }
 
 function loadViewerImage() {
   const item = viewerItems[viewerIndex];
@@ -973,9 +1048,7 @@ function viewerNav(delta) {
 }
 
 function resetViewerTransform() {
-  vZoom = 1;
-  vTx = 0;
-  vTy = 0;
+  vZoom = 1; vTx = 0; vTy = 0;
   applyViewerTransform();
 }
 
@@ -1035,10 +1108,7 @@ function onPointerDown(e) {
     document.getElementById('viewerImg').classList.add('dragging');
   } else if (vPointers.size === 2) {
     const pts = [...vPointers.values()];
-    vPinchStart = {
-      dist: distance(pts[0], pts[1]),
-      zoom: vZoom
-    };
+    vPinchStart = { dist: distance(pts[0], pts[1]), zoom: vZoom };
     vIsDragging = false;
     vLastTouchX = null;
   }
@@ -1059,8 +1129,7 @@ function onPointerMove(e) {
   } else if (vPointers.size === 1 && vIsDragging && vLastPtr) {
     const dx = e.clientX - vLastPtr.x;
     const dy = e.clientY - vLastPtr.y;
-    vTx += dx;
-    vTy += dy;
+    vTx += dx; vTy += dy;
     vLastPtr = { x: e.clientX, y: e.clientY };
     applyViewerTransform();
   }
@@ -1068,111 +1137,5 @@ function onPointerMove(e) {
 
 function onPointerUp(e) {
   if (!vPointers.has(e.pointerId)) return;
-
   if (vPointers.size === 1 && vZoom <= 1.05 && vLastTouchX !== null) {
-    const dx = e.clientX - vLastTouchX;
-    if (Math.abs(dx) > 60) {
-      viewerNav(dx > 0 ? -1 : 1);
-    }
-  }
-
-  vPointers.delete(e.pointerId);
-  if (vPointers.size < 2) vPinchStart = null;
-  if (vPointers.size === 0) {
-    vIsDragging = false;
-    vLastPtr = null;
-    vLastTouchX = null;
-    document.getElementById('viewerImg').classList.remove('dragging');
-  }
-}
-
-function distance(p1, p2) {
-  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-}
-
-document.addEventListener('keydown', (e) => {
-  if (!document.getElementById('viewer').classList.contains('active')) return;
-  if (e.key === 'ArrowLeft') viewerNav(-1);
-  else if (e.key === 'ArrowRight') viewerNav(1);
-  else if (e.key === 'Escape') closeViewer();
-  else if (e.key === '0') resetViewerTransform();
-});
-
-async function loadAdminTransactions() {
-  const res = await apiAdmin('admin_transactions');
-  const txns = res.transactions || [];
-  document.getElementById('adminContent').innerHTML = `
-    <h3>Transactions (${txns.length})</h3>
-    <div style="overflow-x: auto;">
-    <table>
-      <thead><tr><th>User</th><th>Amount</th><th>Coins</th><th>Status</th><th>Time</th></tr></thead>
-      <tbody>
-        ${txns.map(t => `<tr>
-          <td>${escapeHtml(t.email || 'unknown')}</td>
-          <td>₹${t.amount_paise / 100}</td>
-          <td>${t.coins_added}</td>
-          <td>${t.status}</td>
-          <td>${new Date(t.created_at).toLocaleString()}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
-}
-
-async function loadAdminSettings() {
-  await loadConfig();
-  const loras = ['Photo-to-Anime','Anime-V2','Multiple-Angles','Light-Migration','Upscaler','Style-Transfer','Manga-Tone','Anything2Real','Polaroid-Photo','Unblur-Anything','Hyper-Realistic-Portrait','Ultra-Realistic-Portrait','Pixar-Inspired-3D','Noir-Comic-Book','Any-light','Studio-DeLight','Cinematic-FlatLog','Midnight-Noir-Eyes-Spotlight','Fal-Multiple-Angles'];
-  document.getElementById('adminContent').innerHTML = `
-    <h3>General Settings</h3>
-    <div class="form-row">
-      <label>📢 Notes / Tips (shown to users above upload area)</label>
-      <textarea id="userNotesInput" style="min-height: 100px;">${escapeHtml(config.user_notes || '')}</textarea>
-    </div>
-    <div class="form-row">
-      <label>Default LoRA</label>
-      <select id="defaultLoraInput">
-        ${loras.map(l => `<option value="${l}" ${config.default_lora === l ? 'selected' : ''}>${l}</option>`).join('')}
-      </select>
-    </div>
-    <div class="checkbox-row">
-      <input type="checkbox" id="customEnabled" ${config.custom_prompt_enabled ? 'checked' : ''}>
-      <label for="customEnabled" style="margin: 0;">Enable Custom Prompt Button</label>
-    </div>
-    <div class="form-row">
-      <label>Custom Prompt Cost (coins)</label>
-      <input type="number" id="customCostInput" value="${config.custom_prompt_cost}">
-    </div>
-    <button class="btn btn-success" onclick="saveAllSettings()">💾 Save Settings</button>`;
-}
-
-async function saveAllSettings() {
-  const payload = {
-    user_notes: document.getElementById('userNotesInput').value,
-    default_lora: document.getElementById('defaultLoraInput').value,
-    custom_prompt_enabled: document.getElementById('customEnabled').checked,
-    custom_prompt_cost: parseInt(document.getElementById('customCostInput').value) || 120
-  };
-  const res = await apiAdmin('admin_save_settings', payload);
-  if (res.error) return alert('Error: ' + res.error);
-  alert('✅ Settings saved');
-  await loadConfig();
-}
-
-async function apiAdmin(action, body) {
-  const res = await fetch(`/api/main?action=${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: body ? JSON.stringify(body) : null
-  });
-  return await parseJsonSafe(res);
-}
-
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-function escapeHtml(s) {
-  const div = document.createElement('div');
-  div.textContent = String(s ?? '');
-  return div.innerHTML;
-}
-</script>
-</body>
-</html>
+    const dx = e.
