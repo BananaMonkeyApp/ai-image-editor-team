@@ -1138,4 +1138,108 @@ function onPointerMove(e) {
 function onPointerUp(e) {
   if (!vPointers.has(e.pointerId)) return;
   if (vPointers.size === 1 && vZoom <= 1.05 && vLastTouchX !== null) {
-    const dx = e.
+    const dx = e.clientX - vLastTouchX;
+    if (Math.abs(dx) > 60) {
+      viewerNav(dx > 0 ? -1 : 1);
+    }
+  }
+  vPointers.delete(e.pointerId);
+  if (vPointers.size < 2) vPinchStart = null;
+  if (vPointers.size === 0) {
+    vIsDragging = false;
+    vLastPtr = null;
+    vLastTouchX = null;
+    document.getElementById('viewerImg').classList.remove('dragging');
+  }
+}
+
+function distance(p1, p2) {
+  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('viewer').classList.contains('active')) return;
+  if (e.key === 'ArrowLeft') viewerNav(-1);
+  else if (e.key === 'ArrowRight') viewerNav(1);
+  else if (e.key === 'Escape') closeViewer();
+  else if (e.key === '0') resetViewerTransform();
+});
+
+async function loadAdminTransactions() {
+  const res = await apiAdmin('admin_transactions');
+  const txns = res.transactions || [];
+  document.getElementById('adminContent').innerHTML = `
+    <h3>Transactions (${txns.length})</h3>
+    <div style="overflow-x: auto;">
+    <table>
+      <thead><tr><th>User</th><th>Amount</th><th>Coins</th><th>Status</th><th>Time</th></tr></thead>
+      <tbody>
+        ${txns.map(t => `<tr>
+          <td>${escapeHtml(t.email || 'unknown')}</td>
+          <td>₹${t.amount_paise / 100}</td>
+          <td>${t.coins_added}</td>
+          <td>${t.status}</td>
+          <td>${new Date(t.created_at).toLocaleString()}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+async function loadAdminSettings() {
+  await loadConfig();
+  const loras = ['Photo-to-Anime','Anime-V2','Multiple-Angles','Light-Migration','Upscaler','Style-Transfer','Manga-Tone','Anything2Real','Polaroid-Photo','Unblur-Anything','Hyper-Realistic-Portrait','Ultra-Realistic-Portrait','Pixar-Inspired-3D','Noir-Comic-Book','Any-light','Studio-DeLight','Cinematic-FlatLog','Midnight-Noir-Eyes-Spotlight','Fal-Multiple-Angles'];
+  document.getElementById('adminContent').innerHTML = `
+    <h3>General Settings</h3>
+    <div class="form-row">
+      <label>📢 Notes / Tips (shown to users above upload area)</label>
+      <textarea id="userNotesInput" style="min-height: 100px;">${escapeHtml(config.user_notes || '')}</textarea>
+    </div>
+    <div class="form-row">
+      <label>Default LoRA</label>
+      <select id="defaultLoraInput">
+        ${loras.map(l => `<option value="${l}" ${config.default_lora === l ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="customEnabled" ${config.custom_prompt_enabled ? 'checked' : ''}>
+      <label for="customEnabled" style="margin: 0;">Enable Custom Prompt Button</label>
+    </div>
+    <div class="form-row">
+      <label>Custom Prompt Cost (coins)</label>
+      <input type="number" id="customCostInput" value="${config.custom_prompt_cost}">
+    </div>
+    <button class="btn btn-success" onclick="saveAllSettings()">💾 Save Settings</button>`;
+}
+
+async function saveAllSettings() {
+  const payload = {
+    user_notes: document.getElementById('userNotesInput').value,
+    default_lora: document.getElementById('defaultLoraInput').value,
+    custom_prompt_enabled: document.getElementById('customEnabled').checked,
+    custom_prompt_cost: parseInt(document.getElementById('customCostInput').value) || 120
+  };
+  const res = await apiAdmin('admin_save_settings', payload);
+  if (res.error) return alert('Error: ' + res.error);
+  alert('✅ Settings saved');
+  await loadConfig();
+}
+
+async function apiAdmin(action, body) {
+  const res = await fetch(`/api/main?action=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: body ? JSON.stringify(body) : null
+  });
+  return await parseJsonSafe(res);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = String(s ?? '');
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
